@@ -1,0 +1,535 @@
+<script setup lang="ts">
+import { ref } from 'vue'
+import profilePhoto from './assets/photo.jpg'
+import yishengAdmin01 from './assets/projects/QQ20260507-222434.png'
+import yishengAdmin02 from './assets/projects/QQ20260507-222510.png'
+import yishengAdmin03 from './assets/projects/QQ20260507-222556.png'
+import yishengAdmin04 from './assets/projects/QQ20260507-222714.png'
+import yishengAdmin05 from './assets/projects/QQ20260507-222815.png'
+import yishengAdmin06 from './assets/projects/QQ20260507-232532.png'
+import yishengStaff01 from './assets/projects/QQ20260507-223009.png'
+import yishengStaff02 from './assets/projects/QQ20260507-223110.png'
+import yishengStaff03 from './assets/projects/QQ20260507-223132.png'
+import yishengStaff04 from './assets/projects/QQ20260507-223204.png'
+import yishengStaff05 from './assets/projects/QQ20260507-232420.png'
+import yishengMini01 from './assets/projects/QQ20260507-223352.png'
+import yishengMini02 from './assets/projects/QQ20260507-223428.png'
+import yishengMini03 from './assets/projects/QQ20260507-223500.png'
+import yishengMini04 from './assets/projects/QQ20260507-223538.png'
+
+const profile = {
+  name: '陈佳莹',
+  role: '数据科学与大数据技术本科 · 全栈开发 / 后端开发',
+  school: '河北金融学院 · 2026 届',
+  location: '中国 · 北京',
+  email: '2650622341@qq.com',
+  blog: 'blog.csdn.net/2401_84284464',
+  summary:
+    '具备 Java、Rust、Python 与 SpringBoot/Rust 后端项目实践经验，参与过智能社区管理、大健康门店系统、内容审核平台、计算机视觉与 RAG 智能问答项目。关注后端工程、AI 应用落地与数据智能方向。',
+}
+
+const highlights = [
+  { label: '专业排名', value: '前 5%' },
+  { label: '博客文章', value: '160+' },
+  { label: '阅读量', value: '15w+' },
+]
+
+const skills = [
+  {
+    title: '后端开发',
+    items: ['Java', 'SpringBoot', 'SSM', 'MyBatis', 'MyBatis-Plus', 'JWT', 'RBAC', 'RESTful API'],
+  },
+  {
+    title: 'Rust 与异步服务',
+    items: ['Rust', 'Axum', 'SQLx', 'Tokio', 'Serde', 'PostgreSQL', '微信小程序 API', '企业微信 API'],
+  },
+  {
+    title: 'AI 与数据智能',
+    items: ['Python', 'PyTorch', 'YOLOv8', 'CNN', 'RAG', 'Agent RAG', 'MCP', 'LlamaIndex', 'Embedding', 'Prompt'],
+  },
+  {
+    title: '前端联调与工程化',
+    items: ['Vue3', 'TypeScript', 'Taro', 'ECharts', 'MySQL', 'Redis', 'RediSearch', 'Git', 'Linux', 'Docker', 'Nginx', 'Kubernetes'],
+  },
+]
+
+const projects = [
+  {
+    name: '颐生悦大健康智能管理系统',
+    stack: 'Rust · Axum · SQLx · PostgreSQL · Vue3 · Taro',
+    description:
+      '从 0 到 1 完整全面且深度参与了该项目的设计、编写、部署、上线，该门店经营系统建设覆盖管理端、企业微信员工端、微信小程序顾客端。负责数据库设计、后端接口、事务一致性、三端联调、页面适配与后续维护，维护 47 张核心业务表。',
+    mediaGroups: [
+      {
+        id: 'admin',
+        tabLabel: '管理端',
+        title: '管理端 admin-web',
+        note: '门店经营工作台、开单交易、客户档案、服务履约与数据概览',
+        kind: 'desktop',
+        images: [
+          yishengAdmin01,
+          yishengAdmin02,
+          yishengAdmin03,
+          yishengAdmin04,
+          yishengAdmin05,
+          yishengAdmin06,
+        ],
+      },
+      {
+        id: 'staff',
+        tabLabel: '企业微信员工端',
+        title: '企业微信员工端 staff-app',
+        note: '预约执行、客户跟进、服务履约与客户资产查看',
+        kind: 'mobile',
+        images: [yishengStaff01, yishengStaff02, yishengStaff03, yishengStaff04, yishengStaff05],
+      },
+      {
+        id: 'mini',
+        tabLabel: '微信小程序顾客端',
+        title: '微信小程序顾客端 user-mini',
+        note: '会员权益、订单确认、快捷预约与健康档案入口',
+        kind: 'mobile',
+        images: [yishengMini01, yishengMini02, yishengMini03, yishengMini04],
+      },
+    ],
+    details: [
+      '数据库设计与业务建模：根据颐生悦大健康门店业务需求，梳理各核心业务对象，设计并完善 PostgreSQL 表结构；围绕业务闭环设计外键关联、状态字段、时间字段、金额字段、JSONB 快照字段、业务流水表等，保证数据可追溯、可统计、可扩展（该项目共维护了47张表结构数据）；',
+      '后端接口与业务流程开发：基于 Rust 后端技术栈完成多个业务域接口开发，拆分各个模块，实现各个核心接口；根据管理端、员工端、小程序端的不同使用场景设计请求参数、响应结构、分页模型和状态流转逻辑；',
+      '数据库交互与事务一致性处理：使用 SQLx 编写复杂 SQL 查询与数据写入逻辑，完成多表关联查询、分页筛选、详情聚合、统计汇总等功能；在预约新增、服务项目调整、支付确认、卡项划扣、库存出入库、客户资产流水写入等场景中处理多表联动，通过事务保证预约单、服务单、订单、资产流水、库存流水、护理记录、回访记录等数据的一致性；',
+      '服务履约闭环开发：参与实现从“预约创建 - 技师排期 - 到店核销 - 服务开始 - 项目调整 - 发送客户确认 - 服务完成 - 支付确认 - 护理/回访记录生成”的完整服务流程；支持预约拖拽改期、取消、爽约、临时预约标记、服务项目增删改、服务变更日志记录等功能，使员工端能够完整承接门店实际服务执行场景；',
+      '开单交易与客户资产模块开发：参与开发开单流程、订单明细计算、优惠券设置、支付方式选择、客户确认、订单取消、支付处理、业绩分配等逻辑；支持储值卡、次卡、时间卡等不同卡项权益的消费划扣，写入客户资产流水，并联动员工业绩统计、客户消费记录和小程序端待确认订单展示；',
+      '商品库存与卡项管理开发：参与商品档案、服务项目、卡项模板、门店库存、入库、出库、盘点调整、库存流水查询等功能开发；根据不同业务类型生成入库/出库单据编号，校验库存数量、赠品出库权限和盘亏数量，确保商品售卖、赠送、服务消耗等场景下库存数据准确流转；',
+      '三端接口联调与前端适配：配合 admin-web 管理端、staff-app 企业微信员工端、user-mini 微信小程序顾客端完成接口联调，修改前端请求路径、请求参数、类型定义和 Store 数据适配逻辑；根据后端实际返回结构调整页面数据展示，保证数据的一致性；',
+      '前端页面与样式调整：参与修改 Vue/Taro 页面交互和样式细节，完善管理端表格、筛选、弹窗、表单、状态标签等展示效果；调整员工端移动页面和小程序端卡片、列表、按钮、提醒入口等样式，使业务数据能够在不同端清晰展示，并提升门店员工和顾客的实际使用体验；',
+      '第三方能力接入：微信小程序手机号登录、企业微信登录/通讯录同步等能力对接，处理 access_token 获取、缓存、刷新、用户信息解析、JWT 生成等流程，实现顾客端登录识别会员档案、员工端通过企业微信进入系统的基础能力；',
+      '项目维护与问题排查：参与后续接口维护、字段调整、业务规则变更和 Bug 修复，针对前后端联调中出现的字段不一致、状态流转异常、金额计算偏差、分页查询错误、数据为空、样式错位等问题进行定位和修复；根据测试反馈持续完善数据库字段、后端逻辑、接口返回和前端展示，保障系统从开发到联调阶段稳定推进。',
+    ],
+  },
+  {
+    name: '智能社区综合管理系统',
+    stack: 'SpringBoot · MyBatis-Plus · Vue · MySQL · Redis',
+    description:
+      '参与物业与安保场景下的社区管理平台开发，负责 JWT 登录认证、SHA256 密码安全、Redis Token 管控、RBAC 权限模型、百度地图 API、人脸识别接口与 ECharts 可视化。',
+    details: [
+      '基于 JWT、SHA256 与 Redis 构建登录校验体系，实现身份核验、密码安全存储与 Token 管控。',
+      '基于 RBAC 模型设计权限数据库结构，实现角色定义、权限分配、用户-角色关联与多角色权限控制。',
+      '对接百度地图 API 实现小区位置定位与可视化展示，并接入腾讯大模型接口进行人脸识别辅助信息采集。',
+      '完成 Excel 导入导出、文件上传、ECharts 图表展示等业务支撑功能。',
+    ],
+  },
+  {
+    name: '短视频内容低俗化识别与过滤平台',
+    stack: 'SpringBoot · MyBatis-Plus · Vue · MySQL · Redis',
+    description:
+      '面向短视频平台构建“智能检测 + 人工审核”内容安全流程，负责技术选型、数据库设计、视频上传服务、分级处置规则、审核工作台与运营数据可视化。',
+    details: [
+      '参与项目初期技术选型、数据库表设计和全链路业务流程梳理。',
+      '设计合规放行、疑似复核、违规拦截等分级处置规则，并推动团队开发落地。',
+      '实现短视频文件流式上传、格式校验、大小限制与封面上传预览。',
+      '开发审核工作台状态管理、风险等级标注、实时审核流水、分页查询和处理时长格式化。',
+    ],
+  },
+  {
+    name: '作物健康监测系统',
+    stack: 'Python · PyTorch · YOLOv8 · CNN · Flask',
+    description:
+      '基于 YOLOv8 + CBAM-CNN 的作物叶片病虫害识别平台，支持图片、视频与摄像头实时检测，提供模型切换、结果可视化、报告下载和处理后视频下载。',
+    details: [
+      '采用两阶段检测分类方案，先使用 YOLOv8 定位病害区域，再将裁剪区域输入 CNN 分类模型进行细粒度识别。',
+      '引入 CBAM 注意力机制，使模型更关注病斑颜色、形状、纹理、边缘轮廓和局部病变区域。',
+      '支持图片上传检测、视频逐帧分析、摄像头实时检测、检测框展示与帧级检测记录。',
+      '提供病害类别统计、平均置信度、平均 FPS、检测报告下载和处理后视频下载。',
+    ],
+  },
+  {
+    name: '中医临床诊疗智能助手',
+    stack: 'PyTorch · LlamaIndex · RAG · Embedding',
+    description:
+      '基于中医临床术语语料构建 RAG 智能问答流程，完成文档切分、向量索引、查询引擎、专属 Prompt、检索溯源和全流程日志监控。',
+    details: [
+      '基于《中医临床诊疗术语》语料进行预处理、文档切分和向量化。',
+      '调用 Embedding 模型构建 VectorStoreIndex 向量索引，并配置查询引擎检索参数。',
+      '自定义中文医疗场景 Prompt 模板，封装“Query 输入 - 向量检索 - 上下文增强 - LLM 生成 - 答案输出”工作流。',
+      '基于 LlamaDebugHandler 实现检索 Top-K 片段展示、LLM 输入输出解析和 RAG 全流程日志监控。',
+    ],
+  },
+]
+
+const activeProject = ref(projects[0].name)
+const activeMediaTab = ref('admin')
+const previewImage = ref('')
+const previewTitle = ref('')
+const previewScale = ref(1)
+const previewOffsetX = ref(0)
+const previewOffsetY = ref(0)
+const isPreviewDragging = ref(false)
+const previewDragStart = ref({ x: 0, y: 0, offsetX: 0, offsetY: 0 })
+
+function getProjectIntro(projectName: string) {
+  const project = projects.find((item) => item.name === projectName)
+  return project?.details.find((detail) => detail.startsWith('项目简介')) ?? project?.description ?? ''
+}
+
+function getProjectStack(projectName: string) {
+  return projects.find((item) => item.name === projectName)?.stack ?? ''
+}
+
+function openPreview(src: string, title: string, index: number) {
+  previewImage.value = src
+  previewTitle.value = `${title}界面展示 ${index + 1}`
+  previewScale.value = 1
+  previewOffsetX.value = 0
+  previewOffsetY.value = 0
+}
+
+function closePreview() {
+  previewImage.value = ''
+  previewTitle.value = ''
+  previewScale.value = 1
+  previewOffsetX.value = 0
+  previewOffsetY.value = 0
+  isPreviewDragging.value = false
+}
+
+function zoomPreview(step: number) {
+  const nextScale = Math.min(2.5, Math.max(0.5, Number((previewScale.value + step).toFixed(1))))
+  previewScale.value = nextScale
+  if (nextScale <= 1) {
+    previewOffsetX.value = 0
+    previewOffsetY.value = 0
+  }
+}
+
+function handlePreviewWheel(event: WheelEvent) {
+  event.preventDefault()
+  zoomPreview(event.deltaY > 0 ? -0.1 : 0.1)
+}
+
+function startPreviewDrag(event: PointerEvent) {
+  if (previewScale.value <= 1) return
+  isPreviewDragging.value = true
+  previewDragStart.value = {
+    x: event.clientX,
+    y: event.clientY,
+    offsetX: previewOffsetX.value,
+    offsetY: previewOffsetY.value,
+  }
+  ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
+}
+
+function movePreviewDrag(event: PointerEvent) {
+  if (!isPreviewDragging.value) return
+  previewOffsetX.value = previewDragStart.value.offsetX + event.clientX - previewDragStart.value.x
+  previewOffsetY.value = previewDragStart.value.offsetY + event.clientY - previewDragStart.value.y
+}
+
+function stopPreviewDrag(event: PointerEvent) {
+  if (!isPreviewDragging.value) return
+  isPreviewDragging.value = false
+  ;(event.currentTarget as HTMLElement).releasePointerCapture(event.pointerId)
+}
+
+const experience = [
+  {
+    time: '2026.02 - 2026.05',
+    company: '北京云铸科技有限公司',
+    role: 'AI 全栈开发',
+    summary:
+      '参与大健康智能管理系统从需求拆解、数据库建模、后端接口开发到三端联调的完整开发流程，负责 Rust 后端、PostgreSQL 数据交互、前端接口适配和页面样式调整。',
+    project: '颐生悦大健康智能管理系统',
+  },
+  {
+    time: '2025.01 - 2025.03',
+    company: '瑞泽科技（河北）有限公司',
+    role: 'Java 后端开发',
+    summary:
+      '参与物业与安保场景下的智能社区综合管理系统开发，负责登录认证、权限控制、第三方接口对接、文件上传和数据可视化等模块。',
+    project: '智能社区综合管理系统',
+  },
+]
+
+const awards = [
+  '美国大学生数学建模竞赛 MCM/ICM H 奖',
+  '2025 年第七届中青杯数学建模大赛国家级三等奖',
+  '2025 年第十届数维杯数学建模大赛国家级三等奖',
+  '2024-2025 第二学期校级一等奖学金',
+  '2024-2025 第一学期校级二等奖学金',
+]
+
+const books = ['Java 核心技术', '深入理解 Java 虚拟机', 'Java 并发编程的艺术']
+
+const practices = [
+  {
+    time: '2024.09 - 2025.12',
+    title: '校长跑队队长',
+    detail: '负责长跑队日常训练组织、队员沟通与训练节奏协调，在团队管理、目标推进和持续自律方面积累了实践经验。',
+  },
+  {
+    time: '2023.03 - 2025.12',
+    title: '校田径队队员',
+    detail: '长期参与校田径队训练与赛事活动，具备良好的体能基础、抗压能力和团队协作意识。',
+  },
+]
+</script>
+
+<template>
+  <main class="resume-shell">
+    <nav class="topbar" aria-label="页面导航">
+      <a href="#about">{{ profile.name }}</a>
+      <div class="nav-links">
+        <a href="#skills">技能</a>
+        <a href="#experience">经历</a>
+        <a href="#practice">实践</a>
+        <a href="#projects">项目</a>
+      </div>
+    </nav>
+
+    <section id="about" class="hero-section">
+      <div class="hero-copy">
+        <p class="eyebrow">{{ profile.school }}</p>
+        <h1>{{ profile.name }}</h1>
+        <p class="role">{{ profile.role }}</p>
+        <div class="hero-tags" aria-label="方向标签">
+          <span>AI 应用落地</span>
+          <span>后端工程</span>
+          <span>数据智能</span>
+        </div>
+        <p class="summary">{{ profile.summary }}</p>
+        <div class="hero-actions" aria-label="主要操作">
+          <a :href="`mailto:${profile.email}`" class="primary-action">
+            <span>邮箱地址</span>
+            <strong>{{ profile.email }}</strong>
+          </a>
+          <a href="https://blog.csdn.net/2401_84284464" class="secondary-action" target="_blank" rel="noreferrer">
+            <span>博客地址</span>
+            <strong>{{ profile.blog }}</strong>
+          </a>
+        </div>
+      </div>
+
+      <aside class="profile-panel" aria-label="个人概览">
+        <img class="avatar" :src="profilePhoto" alt="陈佳莹证件照" />
+        <div>
+          <span class="panel-label">方向</span>
+          <strong>AI 全栈 / Java 后端 / Rust 后端</strong>
+        </div>
+        <div>
+          <span class="panel-label">所在地</span>
+          <strong>{{ profile.location }}</strong>
+        </div>
+        <div class="stats-grid">
+          <div v-for="item in highlights" :key="item.label">
+            <strong>{{ item.value }}</strong>
+            <span>{{ item.label }}</span>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section id="skills" class="content-band">
+      <div class="section-heading">
+        <p class="eyebrow">Technical Stack</p>
+        <h2>技术能力</h2>
+      </div>
+      <div class="skill-grid">
+        <article v-for="group in skills" :key="group.title" class="skill-card">
+          <h3>{{ group.title }}</h3>
+          <div class="tag-list">
+            <span v-for="item in group.items" :key="item">{{ item }}</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="content-band education-band">
+      <div class="section-heading">
+        <p class="eyebrow">Education</p>
+        <h2>教育背景</h2>
+      </div>
+      <div class="education-layout">
+        <article class="education-card">
+          <p class="date-range">2022.09 - 2026.06</p>
+          <h3>河北金融学院 · 数据科学与大数据技术（本科）</h3>
+          <p>主修课程：机器学习、神经网络与深度学习、NLP 自然语言处理、数据可视化、数据库系统、Linux 操作系统等。</p>
+          <div class="book-list">
+            <span v-for="book in books" :key="book">{{ book }}</span>
+          </div>
+        </article>
+        <article class="award-card">
+          <h3>荣誉奖项</h3>
+          <ul>
+            <li v-for="award in awards" :key="award">{{ award }}</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section id="experience" class="content-band timeline-band">
+      <div class="section-heading">
+        <p class="eyebrow">Growth Path</p>
+        <h2>实习经历</h2>
+      </div>
+      <div class="timeline">
+        <article v-for="item in experience" :key="item.company" class="timeline-item">
+          <div class="timeline-meta">
+            <time>{{ item.time }}</time>
+            <span>{{ item.role }}</span>
+          </div>
+          <div class="timeline-content">
+            <h3>{{ item.company }}</h3>
+            <p>{{ item.summary }}</p>
+            <div class="linked-project">
+              <span>对应项目</span>
+              <strong>{{ item.project }}</strong>
+              <p class="linked-project-stack">{{ getProjectStack(item.project) }}</p>
+              <p class="linked-project-intro">{{ getProjectIntro(item.project) }}</p>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="practice" class="content-band practice-band">
+      <div class="section-heading">
+        <p class="eyebrow">Campus Practice</p>
+        <h2>学生工作与社会实践</h2>
+      </div>
+      <div class="practice-list">
+        <article v-for="item in practices" :key="item.title" class="practice-card">
+          <time>{{ item.time }}</time>
+          <div>
+            <h3>{{ item.title }}</h3>
+            <p>{{ item.detail }}</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="projects" class="content-band">
+      <div class="section-heading">
+        <p class="eyebrow">Selected Work</p>
+        <h2>项目经历</h2>
+      </div>
+      <div class="project-list">
+        <article
+          v-for="project in projects"
+          :key="project.name"
+          class="project-card"
+          :class="{ 'is-active': activeProject === project.name }"
+        >
+          <button
+            class="project-summary"
+            type="button"
+            :aria-expanded="activeProject === project.name"
+            @click="activeProject = activeProject === project.name ? '' : project.name"
+          >
+            <span>
+              <h3>{{ project.name }}</h3>
+              <p class="stack">{{ project.stack }}</p>
+            </span>
+            <span class="project-toggle" aria-hidden="true">
+              {{ activeProject === project.name ? '收起' : '点击查看详情' }}
+            </span>
+          </button>
+          <p>{{ project.description }}</p>
+          <div v-if="activeProject === project.name" class="project-detail">
+            <div v-if="'mediaGroups' in project" class="project-media">
+              <div class="project-media-switch">
+                <div class="project-media-guide">
+                  <strong>界面展示</strong>
+                  <span>点击右侧端类型切换对应截图</span>
+                </div>
+                <div class="project-media-tabs" role="tablist" aria-label="颐生悦系统端展示">
+                  <button
+                    v-for="group in project.mediaGroups"
+                    :key="group.id"
+                    type="button"
+                    role="tab"
+                    :aria-selected="activeMediaTab === group.id"
+                    :class="{ 'is-active': activeMediaTab === group.id }"
+                    @click="activeMediaTab = group.id"
+                  >
+                    <span class="tab-title">{{ group.tabLabel }}</span>
+                    <span class="tab-note">{{ group.images.length }} 张界面展示</span>
+                  </button>
+                </div>
+              </div>
+              <section
+                v-for="group in project.mediaGroups"
+                :key="group.title"
+                class="project-media-group"
+                :class="`is-${group.kind}`"
+                v-show="activeMediaTab === group.id"
+              >
+                <header>
+                  <strong>{{ group.title }}</strong>
+                  <span>{{ group.note }}</span>
+                </header>
+                <div class="project-media-grid">
+                  <figure
+                    v-for="(src, index) in group.images"
+                    :key="src"
+                    :class="{ 'is-featured': index === 0 }"
+                  >
+                    <button
+                      class="project-preview-trigger"
+                      type="button"
+                      :aria-label="`预览${group.title}界面展示 ${index + 1}`"
+                      @click="openPreview(src, group.title, index)"
+                    >
+                      <img :src="src" :alt="`${group.title}界面展示 ${index + 1}`" loading="lazy" />
+                      <span>点击预览</span>
+                    </button>
+                  </figure>
+                </div>
+              </section>
+            </div>
+            <h4>负责内容</h4>
+            <ul>
+              <li v-for="detail in project.details" :key="detail">{{ detail }}</li>
+            </ul>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section id="contact" class="contact-section">
+      <div>
+        <p class="eyebrow">Contact</p>
+        <h2>期待一起做点扎实的东西</h2>
+        <p>如果你正在寻找认真、愿意学习、能把问题推进到底的计算机专业实习生，欢迎联系我。</p>
+      </div>
+    </section>
+
+    <Teleport to="body">
+      <div v-if="previewImage" class="image-preview" role="dialog" aria-modal="true" :aria-label="previewTitle" @click.self="closePreview">
+        <div class="image-preview-panel">
+          <header>
+            <strong>{{ previewTitle }}</strong>
+            <div class="image-preview-actions">
+              <span>{{ Math.round(previewScale * 100) }}%</span>
+              <button type="button" aria-label="关闭预览" @click="closePreview">关闭</button>
+            </div>
+          </header>
+          <div
+            class="image-preview-canvas"
+            :class="{ 'is-zoomed': previewScale > 1, 'is-dragging': isPreviewDragging }"
+            @wheel="handlePreviewWheel"
+            @pointerdown="startPreviewDrag"
+            @pointermove="movePreviewDrag"
+            @pointerup="stopPreviewDrag"
+            @pointercancel="stopPreviewDrag"
+          >
+            <img
+              :src="previewImage"
+              :alt="previewTitle"
+              :style="{ transform: `translate(${previewOffsetX}px, ${previewOffsetY}px) scale(${previewScale})` }"
+              draggable="false"
+            />
+            <span class="image-preview-hint">滚轮缩放，按住拖动</span>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+  </main>
+</template>
