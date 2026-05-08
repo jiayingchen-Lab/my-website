@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import profilePhoto from './assets/photo.jpg'
 import yishengAdmin01 from './assets/projects/QQ20260507-222434.png'
 import yishengAdmin02 from './assets/projects/QQ20260507-222510.png'
@@ -25,7 +25,7 @@ const profile = {
   email: '2650622341@qq.com',
   blog: 'blog.csdn.net/2401_84284464',
   summary:
-    '具备 Java、Rust、Python 与 SpringBoot/Rust 后端项目实践经验，参与过智能社区管理、大健康门店系统、内容审核平台、计算机视觉与 RAG 智能问答项目。关注后端工程、AI 应用落地与数据智能方向。',
+    '具备 Java、Rust 后端项目实践经验，参与过智能社区管理、大健康门店系统、内容审核平台、计算机视觉与 RAG 智能问答项目。关注后端工程、AI 应用落地与数据智能方向。',
 }
 
 const highlights = [
@@ -33,6 +33,8 @@ const highlights = [
   { label: '博客文章', value: '160+' },
   { label: '阅读量', value: '15w+' },
 ]
+
+const highlightTargets = [5, 160, 15]
 
 const skills = [
   {
@@ -58,7 +60,7 @@ const projects = [
     name: '颐生悦大健康智能管理系统',
     stack: 'Rust · Axum · SQLx · PostgreSQL · Vue3 · Taro',
     description:
-      '从 0 到 1 完整全面且深度参与了该项目的设计、编写、部署、上线，该门店经营系统建设覆盖管理端、企业微信员工端、微信小程序顾客端。负责数据库设计、后端接口、事务一致性、三端联调、页面适配与后续维护，维护 47 张核心业务表。',
+      '颐生悦大健康智能管理系统面向美业/大健康门店经营场景，采用 Rust 后端服务 + PostgreSQL 数据库 + 多端前端协同的技术方案，建设管理端 admin-web、企业微信员工端 staff-app、微信小程序顾客端 user-mini 三端体系。系统覆盖客户档案、员工管理、预约排班、服务履约、开单支付、卡项权益、库存商品、护理日志、回访跟进、员工业绩统计等核心业务闭环。',
     mediaGroups: [
       {
         id: 'admin',
@@ -157,6 +159,14 @@ const projects = [
 
 const activeProject = ref(projects[0].name)
 const activeMediaTab = ref('admin')
+const activeSection = ref('about')
+const isScrolled = ref(false)
+const scrollProgress = ref(0)
+const typedSummary = ref('')
+const animatedStats = ref([0, 0, 0])
+const cursorX = ref(0)
+const cursorY = ref(0)
+const cursorVisible = ref(false)
 const previewImage = ref('')
 const previewTitle = ref('')
 const previewScale = ref(1)
@@ -164,10 +174,29 @@ const previewOffsetX = ref(0)
 const previewOffsetY = ref(0)
 const isPreviewDragging = ref(false)
 const previewDragStart = ref({ x: 0, y: 0, offsetX: 0, offsetY: 0 })
+const previewImageRef = ref<HTMLImageElement | null>(null)
+const previewCanvasRef = ref<HTMLElement | null>(null)
+
+function fitPreviewImage() {
+  const image = previewImageRef.value
+  const canvas = previewCanvasRef.value
+  if (!image || !canvas || !image.naturalWidth || !image.naturalHeight) return
+
+  const availableWidth = canvas.clientWidth - 36
+  const availableHeight = canvas.clientHeight - 36
+  const fitScale = Math.min(1, availableWidth / image.naturalWidth, availableHeight / image.naturalHeight)
+  previewScale.value = Number(fitScale.toFixed(3))
+  previewOffsetX.value = 0
+  previewOffsetY.value = 0
+}
 
 function getProjectIntro(projectName: string) {
   const project = projects.find((item) => item.name === projectName)
   return project?.details.find((detail) => detail.startsWith('项目简介')) ?? project?.description ?? ''
+}
+
+function getExperienceProjectIntro(item: { project: string; projectIntro?: string }) {
+  return item.projectIntro ?? getProjectIntro(item.project)
 }
 
 function getProjectStack(projectName: string) {
@@ -192,9 +221,9 @@ function closePreview() {
 }
 
 function zoomPreview(step: number) {
-  const nextScale = Math.min(2.5, Math.max(0.5, Number((previewScale.value + step).toFixed(1))))
+  const nextScale = Math.min(2.5, Math.max(0.12, Number((previewScale.value + step).toFixed(2))))
   previewScale.value = nextScale
-  if (nextScale <= 1) {
+  if (nextScale < 1) {
     previewOffsetX.value = 0
     previewOffsetY.value = 0
   }
@@ -206,7 +235,7 @@ function handlePreviewWheel(event: WheelEvent) {
 }
 
 function startPreviewDrag(event: PointerEvent) {
-  if (previewScale.value <= 1) return
+  if (previewScale.value < 1) return
   isPreviewDragging.value = true
   previewDragStart.value = {
     x: event.clientX,
@@ -237,6 +266,8 @@ const experience = [
     summary:
       '参与大健康智能管理系统从需求拆解、数据库建模、后端接口开发到三端联调的完整开发流程，负责 Rust 后端、PostgreSQL 数据交互、前端接口适配和页面样式调整。',
     project: '颐生悦大健康智能管理系统',
+    projectIntro:
+      '全程完整参与颐生悦大健康智能管理系统从 0 到 1 搭建，项目面向美业/大健康门店经营场景，采用 Rust 后端服务 + PostgreSQL 数据库 + 多端前端协同的技术方案，并遵循公司内部统一的项目架构与开发规范进行模块拆分、接口开发、数据交互和三端联调，建设管理端 admin-web、企业微信员工端 staff-app、微信小程序顾客端 user-mini 三端体系。深度参与数据库设计、后端接口开发、SQL 数据交互、前端接口适配、页面样式调整、联调测试与后续维护，开发过程中结合 VibeCoding 方式提升需求拆解、代码实现与迭代效率，并使用阿里云 Codeup 进行代码托管、分支管理、版本提交和团队协作，推动项目从需求拆解到功能落地的完整开发与后期维护。',
   },
   {
     time: '2025.01 - 2025.03',
@@ -245,6 +276,8 @@ const experience = [
     summary:
       '参与物业与安保场景下的智能社区综合管理系统开发，负责登录认证、权限控制、第三方接口对接、文件上传和数据可视化等模块。',
     project: '智能社区综合管理系统',
+    projectIntro:
+      '在实习中主要跟进社区管理平台的基础业务模块，围绕用户登录、权限判断、数据维护和可视化展示补齐后端接口能力，提升系统日常管理效率。',
   },
 ]
 
@@ -256,12 +289,10 @@ const awards = [
   '2024-2025 第一学期校级二等奖学金',
 ]
 
-const books = ['Java 核心技术', '深入理解 Java 虚拟机', 'Java 并发编程的艺术']
-
 const practices = [
   {
     time: '2024.09 - 2025.12',
-    title: '校长跑队队长',
+    title: '校长跑队干事',
     detail: '负责长跑队日常训练组织、队员沟通与训练节奏协调，在团队管理、目标推进和持续自律方面积累了实践经验。',
   },
   {
@@ -270,38 +301,196 @@ const practices = [
     detail: '长期参与校田径队训练与赛事活动，具备良好的体能基础、抗压能力和团队协作意识。',
   },
 ]
+
+let scrollListener: (() => void) | undefined
+let cursorListener: ((event: PointerEvent) => void) | undefined
+let sectionObserver: IntersectionObserver | undefined
+let revealObserver: IntersectionObserver | undefined
+let counterObserver: IntersectionObserver | undefined
+let typeTimer: number | undefined
+
+function formatHighlight(value: number, index: number) {
+  if (index === 0) return `前 ${Math.round(value)}%`
+  if (index === 1) return `${Math.round(value)}+`
+  return `${Math.round(value)}w+`
+}
+
+function animateCounters() {
+  const start = performance.now()
+  const duration = 1400
+
+  function tick(now: number) {
+    const progress = Math.min(1, (now - start) / duration)
+    const eased = 1 - Math.pow(1 - progress, 3)
+    animatedStats.value = highlightTargets.map((target) => target * eased)
+    if (progress < 1) requestAnimationFrame(tick)
+  }
+
+  requestAnimationFrame(tick)
+}
+
+function startTypewriter() {
+  const text = profile.summary
+  typedSummary.value = ''
+  let index = 0
+  typeTimer = window.setInterval(() => {
+    typedSummary.value = text.slice(0, index)
+    index += 1
+    if (index > text.length && typeTimer) window.clearInterval(typeTimer)
+  }, 28)
+}
+
+function updateTilt(event: MouseEvent) {
+  const target = event.currentTarget as HTMLElement
+  const rect = target.getBoundingClientRect()
+  const x = (event.clientX - rect.left) / rect.width - 0.5
+  const y = (event.clientY - rect.top) / rect.height - 0.5
+  target.style.setProperty('--tilt-x', `${(-y * 10).toFixed(2)}deg`)
+  target.style.setProperty('--tilt-y', `${(x * 12).toFixed(2)}deg`)
+  target.style.setProperty('--spot-x', `${event.clientX - rect.left}px`)
+  target.style.setProperty('--spot-y', `${event.clientY - rect.top}px`)
+}
+
+function resetTilt(event: MouseEvent) {
+  const target = event.currentTarget as HTMLElement
+  target.style.setProperty('--tilt-x', '0deg')
+  target.style.setProperty('--tilt-y', '0deg')
+}
+
+async function toggleProject(projectName: string, event: MouseEvent) {
+  const card = (event.currentTarget as HTMLElement).closest('.project-card')
+  const previousTop = card?.getBoundingClientRect().top
+  const root = document.documentElement
+  const previousScrollBehavior = root.style.scrollBehavior
+
+  activeProject.value = activeProject.value === projectName ? '' : projectName
+
+  await nextTick()
+  requestAnimationFrame(() => {
+    if (previousTop === undefined) {
+      root.style.scrollBehavior = previousScrollBehavior
+      return
+    }
+    const nextTop = card?.getBoundingClientRect().top
+    if (nextTop === undefined) {
+      root.style.scrollBehavior = previousScrollBehavior
+      return
+    }
+    root.style.scrollBehavior = 'auto'
+    window.scrollTo(0, window.scrollY + nextTop - previousTop)
+    requestAnimationFrame(() => {
+      root.style.scrollBehavior = previousScrollBehavior
+    })
+  })
+}
+
+onMounted(() => {
+  scrollListener = () => {
+    const maxScroll = document.documentElement.scrollHeight - window.innerHeight
+    scrollProgress.value = maxScroll > 0 ? (window.scrollY / maxScroll) * 100 : 0
+    isScrolled.value = window.scrollY > 18
+  }
+  scrollListener()
+  window.addEventListener('scroll', scrollListener, { passive: true })
+
+  cursorListener = (event: PointerEvent) => {
+    cursorX.value = event.clientX
+    cursorY.value = event.clientY
+    cursorVisible.value = true
+  }
+  window.addEventListener('pointermove', cursorListener, { passive: true })
+
+  sectionObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) activeSection.value = entry.target.id
+      })
+    },
+    { rootMargin: '-42% 0px -48% 0px', threshold: 0 },
+  )
+  document.querySelectorAll('section[id]').forEach((section) => sectionObserver?.observe(section))
+
+  revealObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible')
+          revealObserver?.unobserve(entry.target)
+        }
+      })
+    },
+    { threshold: 0.12 },
+  )
+  document.querySelectorAll('.reveal').forEach((item) => revealObserver?.observe(item))
+
+  counterObserver = new IntersectionObserver(
+    (entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        animateCounters()
+        counterObserver?.disconnect()
+      }
+    },
+    { threshold: 0.35 },
+  )
+  const stats = document.querySelector('.stats-grid')
+  if (stats) counterObserver.observe(stats)
+
+  startTypewriter()
+})
+
+onBeforeUnmount(() => {
+  if (scrollListener) window.removeEventListener('scroll', scrollListener)
+  if (cursorListener) window.removeEventListener('pointermove', cursorListener)
+  sectionObserver?.disconnect()
+  revealObserver?.disconnect()
+  counterObserver?.disconnect()
+  if (typeTimer) window.clearInterval(typeTimer)
+})
 </script>
 
 <template>
   <main class="resume-shell">
-    <nav class="topbar" aria-label="页面导航">
+    <div
+      class="cursor-glow"
+      :class="{ 'is-visible': cursorVisible }"
+      :style="{ transform: `translate3d(${cursorX}px, ${cursorY}px, 0)` }"
+      aria-hidden="true"
+    ></div>
+    <nav class="topbar" :class="{ 'is-scrolled': isScrolled }" aria-label="页面导航">
+      <div class="scroll-progress" :style="{ width: `${scrollProgress}%` }" aria-hidden="true"></div>
       <a href="#about">{{ profile.name }}</a>
       <div class="nav-links">
-        <a href="#skills">技能</a>
-        <a href="#experience">经历</a>
-        <a href="#practice">实践</a>
-        <a href="#projects">项目</a>
+        <a href="#skills" :class="{ 'is-active': activeSection === 'skills' }">技能</a>
+        <a href="#experience" :class="{ 'is-active': activeSection === 'experience' }">经历</a>
+        <a href="#practice" :class="{ 'is-active': activeSection === 'practice' }">实践</a>
+        <a href="#projects" :class="{ 'is-active': activeSection === 'projects' }">项目</a>
       </div>
     </nav>
 
-    <section id="about" class="hero-section">
+    <section id="about" class="hero-section reveal">
+      <div class="aurora-layer" aria-hidden="true"></div>
+      <div class="particle-field" aria-hidden="true">
+        <span v-for="index in 28" :key="index"></span>
+      </div>
       <div class="hero-copy">
-        <p class="eyebrow">{{ profile.school }}</p>
         <h1>{{ profile.name }}</h1>
         <p class="role">{{ profile.role }}</p>
-        <div class="hero-tags" aria-label="方向标签">
-          <span>AI 应用落地</span>
-          <span>后端工程</span>
-          <span>数据智能</span>
+        <p class="summary typewriter">{{ typedSummary }}</p>
+        <div class="stats-grid hero-stats">
+          <div v-for="(item, index) in highlights" :key="item.label">
+            <strong>{{ formatHighlight(animatedStats[index], index) }}</strong>
+            <span>{{ item.label }}</span>
+          </div>
         </div>
-        <p class="summary">{{ profile.summary }}</p>
         <div class="hero-actions" aria-label="主要操作">
           <a :href="`mailto:${profile.email}`" class="primary-action">
-            <span>邮箱地址</span>
+            <span class="action-icon" aria-hidden="true">@</span>
+            <span>邮箱</span>
             <strong>{{ profile.email }}</strong>
           </a>
           <a href="https://blog.csdn.net/2401_84284464" class="secondary-action" target="_blank" rel="noreferrer">
-            <span>博客地址</span>
+            <span class="action-icon" aria-hidden="true">↗</span>
+            <span>博客</span>
             <strong>{{ profile.blog }}</strong>
           </a>
         </div>
@@ -317,46 +506,55 @@ const practices = [
           <span class="panel-label">所在地</span>
           <strong>{{ profile.location }}</strong>
         </div>
-        <div class="stats-grid">
-          <div v-for="item in highlights" :key="item.label">
-            <strong>{{ item.value }}</strong>
-            <span>{{ item.label }}</span>
-          </div>
-        </div>
       </aside>
     </section>
 
-    <section id="skills" class="content-band">
+    <section id="skills" class="content-band reveal">
       <div class="section-heading">
         <p class="eyebrow">Technical Stack</p>
         <h2>技术能力</h2>
       </div>
       <div class="skill-grid">
-        <article v-for="group in skills" :key="group.title" class="skill-card">
-          <h3>{{ group.title }}</h3>
+        <article v-for="group in skills" :key="group.title" class="skill-card reveal">
+          <div class="skill-card-header">
+            <h3>{{ group.title }}</h3>
+          </div>
           <div class="tag-list">
-            <span v-for="item in group.items" :key="item">{{ item }}</span>
+            <span v-for="(item, index) in group.items" :key="item" :style="{ '--tag-index': index }">{{ item }}</span>
           </div>
         </article>
       </div>
     </section>
 
-    <section class="content-band education-band">
+    <section class="content-band education-band reveal">
       <div class="section-heading">
         <p class="eyebrow">Education</p>
         <h2>教育背景</h2>
       </div>
       <div class="education-layout">
-        <article class="education-card">
-          <p class="date-range">2022.09 - 2026.06</p>
-          <h3>河北金融学院 · 数据科学与大数据技术（本科）</h3>
-          <p>主修课程：机器学习、神经网络与深度学习、NLP 自然语言处理、数据可视化、数据库系统、Linux 操作系统等。</p>
-          <div class="book-list">
-            <span v-for="book in books" :key="book">{{ book }}</span>
+        <article class="education-card reveal tilt-card" @mousemove="updateTilt" @mouseleave="resetTilt">
+          <div class="education-card-top">
+            <p class="date-range">2022.09 - 2026.06</p>
+            <span>本科</span>
+          </div>
+          <h3>河北金融学院 · 数据科学与大数据技术</h3>
+          <p class="education-summary">
+            围绕数据建模、智能算法与工程实践建立系统训练，持续把课堂知识转化为可落地的后端开发和 AI 应用能力。
+          </p>
+          <div class="education-focus" aria-label="课程方向">
+            <span>机器学习</span>
+            <span>深度学习</span>
+            <span>NLP</span>
+            <span>数据可视化</span>
+            <span>数据库系统</span>
+            <span>Linux</span>
           </div>
         </article>
-        <article class="award-card">
-          <h3>荣誉奖项</h3>
+        <article class="award-card reveal">
+          <div class="award-card-header">
+            <span>Honors</span>
+            <h3>荣誉奖项</h3>
+          </div>
           <ul>
             <li v-for="award in awards" :key="award">{{ award }}</li>
           </ul>
@@ -364,13 +562,19 @@ const practices = [
       </div>
     </section>
 
-    <section id="experience" class="content-band timeline-band">
+    <section id="experience" class="content-band timeline-band reveal">
       <div class="section-heading">
         <p class="eyebrow">Growth Path</p>
         <h2>实习经历</h2>
       </div>
       <div class="timeline">
-        <article v-for="item in experience" :key="item.company" class="timeline-item">
+        <article
+          v-for="item in experience"
+          :key="item.company"
+          class="timeline-item reveal tilt-card"
+          @mousemove="updateTilt"
+          @mouseleave="resetTilt"
+        >
           <div class="timeline-meta">
             <time>{{ item.time }}</time>
             <span>{{ item.role }}</span>
@@ -382,20 +586,20 @@ const practices = [
               <span>对应项目</span>
               <strong>{{ item.project }}</strong>
               <p class="linked-project-stack">{{ getProjectStack(item.project) }}</p>
-              <p class="linked-project-intro">{{ getProjectIntro(item.project) }}</p>
+              <p class="linked-project-intro">{{ getExperienceProjectIntro(item) }}</p>
             </div>
           </div>
         </article>
       </div>
     </section>
 
-    <section id="practice" class="content-band practice-band">
+    <section id="practice" class="content-band practice-band reveal">
       <div class="section-heading">
         <p class="eyebrow">Campus Practice</p>
         <h2>学生工作与社会实践</h2>
       </div>
       <div class="practice-list">
-        <article v-for="item in practices" :key="item.title" class="practice-card">
+        <article v-for="item in practices" :key="item.title" class="practice-card reveal">
           <time>{{ item.time }}</time>
           <div>
             <h3>{{ item.title }}</h3>
@@ -405,7 +609,7 @@ const practices = [
       </div>
     </section>
 
-    <section id="projects" class="content-band">
+    <section id="projects" class="content-band reveal">
       <div class="section-heading">
         <p class="eyebrow">Selected Work</p>
         <h2>项目经历</h2>
@@ -421,7 +625,7 @@ const practices = [
             class="project-summary"
             type="button"
             :aria-expanded="activeProject === project.name"
-            @click="activeProject = activeProject === project.name ? '' : project.name"
+            @click="toggleProject(project.name, $event)"
           >
             <span>
               <h3>{{ project.name }}</h3>
@@ -432,7 +636,7 @@ const practices = [
             </span>
           </button>
           <p>{{ project.description }}</p>
-          <div v-if="activeProject === project.name" class="project-detail">
+          <div class="project-detail" :class="{ 'is-open': activeProject === project.name }">
             <div v-if="'mediaGroups' in project" class="project-media">
               <div class="project-media-switch">
                 <div class="project-media-guide">
@@ -493,11 +697,11 @@ const practices = [
       </div>
     </section>
 
-    <section id="contact" class="contact-section">
+    <section id="contact" class="contact-section reveal">
       <div>
         <p class="eyebrow">Contact</p>
         <h2>期待一起做点扎实的东西</h2>
-        <p>如果你正在寻找认真、愿意学习、能把问题推进到底的计算机专业实习生，欢迎联系我。</p>
+        <p>如果你正在寻找认真、愿意学习、能把问题推进到底的计算机专业应届生，欢迎联系我。</p>
       </div>
     </section>
 
@@ -512,8 +716,9 @@ const practices = [
             </div>
           </header>
           <div
+            ref="previewCanvasRef"
             class="image-preview-canvas"
-            :class="{ 'is-zoomed': previewScale > 1, 'is-dragging': isPreviewDragging }"
+            :class="{ 'is-zoomed': previewScale >= 1, 'is-dragging': isPreviewDragging }"
             @wheel="handlePreviewWheel"
             @pointerdown="startPreviewDrag"
             @pointermove="movePreviewDrag"
@@ -521,9 +726,11 @@ const practices = [
             @pointercancel="stopPreviewDrag"
           >
             <img
+              ref="previewImageRef"
               :src="previewImage"
               :alt="previewTitle"
               :style="{ transform: `translate(${previewOffsetX}px, ${previewOffsetY}px) scale(${previewScale})` }"
+              @load="fitPreviewImage"
               draggable="false"
             />
             <span class="image-preview-hint">滚轮缩放，按住拖动</span>
