@@ -35,6 +35,7 @@
 }
 
 html {
+  overflow-anchor: none;
   scroll-behavior: smooth;
 }
 
@@ -42,6 +43,7 @@ body {
   min-width: 320px;
   margin: 0;
   overflow-x: hidden;
+  overflow-anchor: none;
   background:
     radial-gradient(circle at 12% 0%, rgba(82, 211, 194, 0.24), transparent 30vw),
     radial-gradient(circle at 92% 4%, rgba(248, 154, 180, 0.18), transparent 32vw),
@@ -64,12 +66,14 @@ button {
 
 #app {
   min-height: 100vh;
+  overflow-anchor: none;
 }
 
 .resume-shell {
   width: min(1440px, calc(100% - 48px));
   margin: 0 auto;
   padding: 8px 0 48px;
+  overflow-anchor: none;
 }
 
 .cursor-glow {
@@ -1041,9 +1045,23 @@ h3 {
   animation: projectSwitchIn 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.project-switch-spacer {
+  height: 0;
+  margin-top: -18px;
+  overflow: hidden;
+  pointer-events: none;
+  transition: height 0.74s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: height;
+}
+
+.project-switch-spacer.is-open {
+  height: var(--switch-spacer-height, 0);
+}
+
 .project-card {
   position: relative;
   overflow: hidden;
+  overflow-anchor: none;
   border: 1px solid rgba(13, 24, 32, 0.11);
   border-radius: 8px;
   padding: clamp(20px, 2.5vw, 26px);
@@ -1273,10 +1291,11 @@ h3 {
 }
 
 .project-detail {
-  display: grid;
+  display: block;
   gap: 0;
-  grid-template-rows: 0fr;
+  height: 0;
   overflow: hidden;
+  overflow-anchor: none;
   border-top: 0 solid transparent;
   margin-top: 0;
   border-radius: 8px;
@@ -1286,24 +1305,28 @@ h3 {
   pointer-events: none;
   transform: translate3d(0, -8px, 0);
   transition:
-    grid-template-rows 0.46s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.24s ease,
-    transform 0.34s ease,
+    height 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.22s ease,
+    transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
     visibility 0s linear 0.34s,
     margin-top 0.3s ease,
     padding 0.3s ease;
-  will-change: grid-template-rows, opacity, transform;
+  will-change: height, opacity, transform;
 }
 
 .project-detail-inner {
-  min-height: 0;
-  overflow: hidden;
+  min-height: max-content;
+  overflow: visible;
+  padding-bottom: clamp(12px, 1.2vw, 18px);
   transform: translate3d(0, 8px, 0);
-  transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1);
+  transition:
+    opacity 0.28s ease,
+    transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
 }
 
 .project-detail.is-open {
-  grid-template-rows: 1fr;
+  height: var(--active-detail-height, 0);
   margin-top: 20px;
   padding: 22px;
   opacity: 1;
@@ -1317,15 +1340,59 @@ h3 {
     inset 0 0 0 1px rgba(13, 24, 32, 0.08),
     0 18px 44px rgba(13, 24, 32, 0.07);
   transition:
-    grid-template-rows 0.46s cubic-bezier(0.22, 1, 0.36, 1),
-    opacity 0.24s ease,
-    transform 0.34s ease,
+    height 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.22s ease,
+    transform 0.34s cubic-bezier(0.22, 1, 0.36, 1),
     margin-top 0.3s ease,
     padding 0.3s ease;
 }
 
 .project-detail.is-open .project-detail-inner {
   transform: translate3d(0, 0, 0);
+}
+
+.project-detail.is-leaving {
+  display: block;
+  height: var(--leaving-height, 0);
+  margin-top: 20px;
+  overflow: hidden;
+  padding: 22px;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: none;
+  transform: translate3d(0, 0, 0);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.78), rgba(245, 250, 248, 0.88)),
+    linear-gradient(90deg, rgba(17, 181, 200, 0.06), transparent 52%, rgba(227, 166, 47, 0.08));
+  box-shadow:
+    inset 0 0 0 1px rgba(13, 24, 32, 0.08),
+    0 18px 44px rgba(13, 24, 32, 0.07);
+  transition:
+    height 0.74s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.36s ease 0.12s,
+    transform 0.48s cubic-bezier(0.4, 0, 0.2, 1),
+    margin-top 0.62s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.62s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.project-detail.is-leaving.is-leaving-closing {
+  height: 0;
+  margin-top: 0;
+  padding: 0 22px;
+  opacity: 0;
+  transform: translate3d(0, -8px, 0);
+}
+
+.project-detail.is-leaving .project-detail-inner {
+  transform: translate3d(0, 0, 0);
+}
+
+.project-detail.is-leaving.is-leaving-closing .project-detail-inner {
+  opacity: 0;
+  transform: translate3d(0, -6px, 0);
+  transition:
+    opacity 0.42s ease,
+    transform 0.52s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .project-media {
@@ -1621,8 +1688,11 @@ h3 {
 .project-detail ul {
   display: grid;
   gap: 10px;
-  margin: 0;
-  padding-left: 20px;
+  margin: 0 clamp(8px, 1vw, 14px);
+  border: 1px solid rgba(17, 181, 200, 0.12);
+  border-radius: 8px;
+  padding: 14px 18px 14px 34px;
+  background: rgba(255, 255, 255, 0.52);
 }
 
 .project-detail li::marker {

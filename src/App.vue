@@ -208,7 +208,13 @@ const previewImageRef = ref<HTMLImageElement | null>(null)
 const previewCanvasRef = ref<HTMLElement | null>(null)
 const lastPageScrollAt = ref(0)
 const isProjectSwitching = ref(false)
-const suppressProjectHoverUntil = ref(0)
+const activeProjectHeight = ref(0)
+const leavingProject = ref('')
+const leavingProjectHeight = ref(0)
+const isLeavingProjectClosing = ref(false)
+const projectSwitchSpacerProject = ref('')
+const projectSwitchSpacerHeight = ref(0)
+const isProjectSwitchSpacerOpen = ref(false)
 
 function fitPreviewImage() {
   const image = previewImageRef.value
@@ -376,8 +382,14 @@ let revealObserver: IntersectionObserver | undefined
 let counterObserver: IntersectionObserver | undefined
 let typeTimer: number | undefined
 let projectSwitchTimer: number | undefined
-let projectSwitchFrame: number | undefined
-let restoreScrollBehaviorTimer: number | undefined
+let projectSwitchStartTimer: number | undefined
+let projectSwitchStartFrame: number | undefined
+let projectPositionPinFrame: number | undefined
+let scrollBehaviorRestoreFrame: number | undefined
+let previousRootScrollBehavior: string | undefined
+let isRootScrollBehaviorForced = false
+let isProjectPositionPinned = false
+let projectDetailResizeObserver: ResizeObserver | undefined
 
 function formatHighlight(value: number, index: number) {
   if (index === 0) return `前 ${Math.round(value)}%`
@@ -427,92 +439,258 @@ function resetTilt(event: MouseEvent) {
   target.style.setProperty('--tilt-y', '0deg')
 }
 
-function scrollByInstant(offset: number) {
-  if (Math.abs(offset) <= 1) return
+function forceInstantPageScroll() {
   const root = document.documentElement
-  const previousScrollBehavior = root.style.scrollBehavior
+  if (scrollBehaviorRestoreFrame) {
+    window.cancelAnimationFrame(scrollBehaviorRestoreFrame)
+    scrollBehaviorRestoreFrame = undefined
+  }
+  if (!isRootScrollBehaviorForced) {
+    previousRootScrollBehavior = root.style.scrollBehavior
+    isRootScrollBehaviorForced = true
+  }
   root.style.scrollBehavior = 'auto'
-  window.scrollBy(0, offset)
-  requestAnimationFrame(() => {
-    root.style.scrollBehavior = previousScrollBehavior
+}
+
+function restorePageScrollBehaviorSoon() {
+  if (isProjectPositionPinned) return
+  if (scrollBehaviorRestoreFrame) window.cancelAnimationFrame(scrollBehaviorRestoreFrame)
+  scrollBehaviorRestoreFrame = requestAnimationFrame(() => {
+    document.documentElement.style.scrollBehavior = previousRootScrollBehavior ?? ''
+    previousRootScrollBehavior = undefined
+    isRootScrollBehaviorForced = false
+    scrollBehaviorRestoreFrame = undefined
   })
 }
 
-function lockProjectCardPosition(card: HTMLElement, topBeforeOpen: number, duration = 520) {
-  if (projectSwitchFrame) window.cancelAnimationFrame(projectSwitchFrame)
-  if (restoreScrollBehaviorTimer) window.clearTimeout(restoreScrollBehaviorTimer)
+function adjustPageScrollInstant(offset: number) {
+  if (Math.abs(offset) <= 1) return
+  forceInstantPageScroll()
+  window.scrollBy(0, offset)
+}
 
-  const root = document.documentElement
-  const previousScrollBehavior = root.style.scrollBehavior
-  const start = performance.now()
-  root.style.scrollBehavior = 'auto'
+function stopProjectPositionPin() {
+  if (projectPositionPinFrame) {
+    window.cancelAnimationFrame(projectPositionPinFrame)
+    projectPositionPinFrame = undefined
+  }
+  isProjectPositionPinned = false
+  restorePageScrollBehaviorSoon()
+}
 
-  const tick = (now: number) => {
-    const offset = card.getBoundingClientRect().top - topBeforeOpen
-    if (Math.abs(offset) > 0.5) window.scrollBy(0, offset)
+function pinProjectCardPosition(card: HTMLElement | undefined, top: number | undefined, duration = 760) {
+  if (!card || top === undefined) return
+  if (projectPositionPinFrame) window.cancelAnimationFrame(projectPositionPinFrame)
 
-    if (now - start < duration) {
-      projectSwitchFrame = window.requestAnimationFrame(tick)
+  forceInstantPageScroll()
+  isProjectPositionPinned = true
+  const startedAt = performance.now()
+
+  const keepPinned = (now: number) => {
+    const delta = card.getBoundingClientRect().top - top
+    if (Math.abs(delta) > 0.25) {
+      window.scrollBy(0, delta)
+    }
+
+    if (now - startedAt < duration) {
+      projectPositionPinFrame = window.requestAnimationFrame(keepPinned)
       return
     }
 
-    projectSwitchFrame = undefined
-    restoreScrollBehaviorTimer = window.setTimeout(() => {
-      root.style.scrollBehavior = previousScrollBehavior
-      restoreScrollBehaviorTimer = undefined
-    }, 0)
+    projectPositionPinFrame = undefined
+    isProjectPositionPinned = false
+    restorePageScrollBehaviorSoon()
   }
 
-  projectSwitchFrame = window.requestAnimationFrame(tick)
+  projectPositionPinFrame = window.requestAnimationFrame(keepPinned)
+}
+
+function getOpenProjectDetailMetrics() {
+  const detail = document.querySelector('.project-card.is-active .project-detail.is-open')
+  if (!(detail instanceof HTMLElement)) return { height: 0, flowHeight: 0 }
+  const style = window.getComputedStyle(detail)
+  const marginY = parseFloat(style.marginTop) + parseFloat(style.marginBottom)
+
+  return {
+    height: detail.offsetHeight,
+    flowHeight: detail.offsetHeight + marginY,
+  }
+}
+
+function measureProjectDetailHeight(detail: HTMLElement) {
+  const inner = detail.querySelector('.project-detail-inner')
+  const style = window.getComputedStyle(detail)
+  const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
+  const innerHeight =
+    inner instanceof HTMLElement ? Math.max(inner.scrollHeight, inner.getBoundingClientRect().height) : 0
+
+  return Math.ceil(Math.max(detail.scrollHeight, innerHeight + paddingY) + 18)
+}
+
+function syncActiveProjectHeight() {
+  if (!activeProject.value) {
+    activeProjectHeight.value = 0
+    projectDetailResizeObserver?.disconnect()
+    return
+  }
+
+  const detail = document.querySelector('.project-card.is-active .project-detail')
+  if (!(detail instanceof HTMLElement)) return
+  activeProjectHeight.value = measureProjectDetailHeight(detail)
+}
+
+function observeActiveProjectDetail() {
+  projectDetailResizeObserver?.disconnect()
+  if (!activeProject.value) return
+
+  const detail = document.querySelector('.project-card.is-active .project-detail')
+  const inner = detail?.querySelector('.project-detail-inner')
+  if (!(detail instanceof HTMLElement) || !(inner instanceof HTMLElement)) return
+
+  activeProjectHeight.value = measureProjectDetailHeight(detail)
+  projectDetailResizeObserver = new ResizeObserver(() => {
+    activeProjectHeight.value = measureProjectDetailHeight(detail)
+  })
+  projectDetailResizeObserver.observe(inner)
+}
+
+function getProjectDetailStyle(projectName: string) {
+  if (activeProject.value === projectName) {
+    return {
+      '--active-detail-height': `${activeProjectHeight.value}px`,
+    }
+  }
+  if (leavingProject.value !== projectName) return undefined
+  return {
+    '--leaving-height': `${isLeavingProjectClosing.value ? 0 : leavingProjectHeight.value}px`,
+  }
+}
+
+function getProjectSwitchSpacerStyle(projectName: string) {
+  if (projectSwitchSpacerProject.value !== projectName) return undefined
+
+  return {
+    '--switch-spacer-height': `${projectSwitchSpacerHeight.value}px`,
+  }
+}
+
+function getProjectIndex(projectName: string) {
+  return projects.findIndex((project) => project.name === projectName)
+}
+
+function cleanupProjectSwitch(card?: HTMLElement) {
+  const topBeforeCleanup = card?.getBoundingClientRect().top
+
+  isProjectSwitching.value = false
+  leavingProject.value = ''
+  leavingProjectHeight.value = 0
+  isLeavingProjectClosing.value = false
+  projectSwitchSpacerProject.value = ''
+  projectSwitchSpacerHeight.value = 0
+  isProjectSwitchSpacerOpen.value = false
+  projectSwitchTimer = undefined
+
+  if (card && topBeforeCleanup !== undefined) {
+    nextTick(() => {
+      const topAfterCleanup = card.getBoundingClientRect().top
+      adjustPageScrollInstant(topAfterCleanup - topBeforeCleanup)
+      pinProjectCardPosition(card, topBeforeCleanup, 180)
+    })
+  }
 }
 
 function openProject(
   projectName: string,
   event?: Event,
-  options: { keepPosition?: boolean; instant?: boolean } = { keepPosition: true },
+  options: { keepPosition?: boolean } = { keepPosition: true },
 ) {
   if (activeProject.value === projectName) return
   const source = event?.currentTarget instanceof HTMLElement ? event.currentTarget : undefined
-  const card = source?.closest('.project-card') instanceof HTMLElement ? source.closest('.project-card') : source
+  const closestCard = source?.closest('.project-card')
+  const card = closestCard instanceof HTMLElement ? closestCard : source
   const topBeforeOpen = options.keepPosition ? card?.getBoundingClientRect().top : undefined
-  const shouldSwitchInstantly = options.instant && activeProject.value && activeProject.value !== projectName
+  const previousProject = activeProject.value
+  const shouldSwitchProjects = Boolean(previousProject && previousProject !== projectName)
+  const isSwitchingDown =
+    shouldSwitchProjects && getProjectIndex(projectName) > getProjectIndex(previousProject)
 
-  if (shouldSwitchInstantly) isProjectSwitching.value = true
+  if (shouldSwitchProjects) {
+    if (projectSwitchTimer) {
+      window.clearTimeout(projectSwitchTimer)
+      projectSwitchTimer = undefined
+    }
+    if (projectSwitchStartTimer) {
+      window.clearTimeout(projectSwitchStartTimer)
+      projectSwitchStartTimer = undefined
+    }
+    if (projectSwitchStartFrame) {
+      window.cancelAnimationFrame(projectSwitchStartFrame)
+      projectSwitchStartFrame = undefined
+    }
+    const previousDetail = getOpenProjectDetailMetrics()
+    leavingProject.value = previousProject
+    leavingProjectHeight.value = previousDetail.height
+    isLeavingProjectClosing.value = false
+    isProjectSwitching.value = true
+    projectSwitchSpacerProject.value = isSwitchingDown ? projectName : ''
+    projectSwitchSpacerHeight.value = isSwitchingDown ? previousDetail.flowHeight : 0
+    isProjectSwitchSpacerOpen.value = false
+  } else {
+    leavingProject.value = ''
+    leavingProjectHeight.value = 0
+    isLeavingProjectClosing.value = false
+    projectSwitchSpacerProject.value = ''
+    projectSwitchSpacerHeight.value = 0
+    isProjectSwitchSpacerOpen.value = false
+  }
 
+  activeProjectHeight.value = 0
   activeProject.value = projectName
   activeMediaTab.value = getDefaultMediaTab(projectName)
 
   nextTick(() => {
-    if (card && topBeforeOpen !== undefined) {
-      if (shouldSwitchInstantly && card instanceof HTMLElement) {
-        lockProjectCardPosition(card, topBeforeOpen)
-      } else {
-        const topAfterOpen = card.getBoundingClientRect().top
-        scrollByInstant(topAfterOpen - topBeforeOpen)
-      }
+    syncActiveProjectHeight()
+    requestAnimationFrame(observeActiveProjectDetail)
+    if (shouldSwitchProjects) {
+      projectSwitchStartTimer = window.setTimeout(() => {
+        projectSwitchStartTimer = undefined
+        projectSwitchStartFrame = requestAnimationFrame(() => {
+          isLeavingProjectClosing.value = true
+          isProjectSwitchSpacerOpen.value = Boolean(projectSwitchSpacerProject.value)
+          projectSwitchStartFrame = undefined
+          if (card && topBeforeOpen !== undefined) {
+            nextTick(() => {
+              if (activeProject.value !== projectName) return
+              adjustPageScrollInstant(card.getBoundingClientRect().top - topBeforeOpen)
+              pinProjectCardPosition(card, topBeforeOpen, 980)
+            })
+          }
+        })
+      }, 90)
     }
-    if (shouldSwitchInstantly) {
-      if (projectSwitchTimer) window.clearTimeout(projectSwitchTimer)
+    if (card && topBeforeOpen !== undefined) {
+      const topAfterOpen = card.getBoundingClientRect().top
+      adjustPageScrollInstant(topAfterOpen - topBeforeOpen)
+      pinProjectCardPosition(card, topBeforeOpen, shouldSwitchProjects ? 1040 : 420)
+    }
+    if (shouldSwitchProjects) {
       projectSwitchTimer = window.setTimeout(() => {
-        isProjectSwitching.value = false
-        projectSwitchTimer = undefined
-      }, 320)
+        cleanupProjectSwitch(card)
+      }, 940)
     }
   })
 }
 
 function openProjectByPointer(projectName: string, event: PointerEvent) {
   if (event.pointerType !== 'mouse') return
-  if (performance.now() < suppressProjectHoverUntil.value) return
-  suppressProjectHoverUntil.value = performance.now() + 240
-  openProject(projectName, event, { keepPosition: true, instant: true })
+  openProject(projectName, event, { keepPosition: true })
 }
 
 function closeProjectByPointer(projectName: string, event: PointerEvent) {
   if (event.pointerType !== 'mouse') return
   const nextTarget = event.relatedTarget instanceof HTMLElement ? event.relatedTarget : undefined
   if (nextTarget?.closest('.project-card')) return
-  closeProject(projectName)
+  closeProject(projectName, { force: true })
 }
 
 function openProjectByFocus(projectName: string, event: FocusEvent) {
@@ -525,7 +703,29 @@ function closeProject(projectName: string, options: { force?: boolean } = {}) {
   if (previewImage.value) return
   if (!options.force && performance.now() - lastPageScrollAt.value < 220) return
   if (activeProject.value !== projectName) return
+  if (projectSwitchTimer) {
+    window.clearTimeout(projectSwitchTimer)
+    projectSwitchTimer = undefined
+  }
+  if (projectSwitchStartTimer) {
+    window.clearTimeout(projectSwitchStartTimer)
+    projectSwitchStartTimer = undefined
+  }
+  if (projectSwitchStartFrame) {
+    window.cancelAnimationFrame(projectSwitchStartFrame)
+    projectSwitchStartFrame = undefined
+  }
+  stopProjectPositionPin()
   activeProject.value = ''
+  activeProjectHeight.value = 0
+  isProjectSwitching.value = false
+  leavingProject.value = ''
+  leavingProjectHeight.value = 0
+  isLeavingProjectClosing.value = false
+  projectSwitchSpacerProject.value = ''
+  projectSwitchSpacerHeight.value = 0
+  isProjectSwitchSpacerOpen.value = false
+  projectDetailResizeObserver?.disconnect()
 }
 
 function toggleProject(projectName: string, event: Event) {
@@ -597,10 +797,16 @@ onBeforeUnmount(() => {
   sectionObserver?.disconnect()
   revealObserver?.disconnect()
   counterObserver?.disconnect()
+  projectDetailResizeObserver?.disconnect()
   if (typeTimer) window.clearInterval(typeTimer)
   if (projectSwitchTimer) window.clearTimeout(projectSwitchTimer)
-  if (projectSwitchFrame) window.cancelAnimationFrame(projectSwitchFrame)
-  if (restoreScrollBehaviorTimer) window.clearTimeout(restoreScrollBehaviorTimer)
+  if (projectSwitchStartTimer) window.clearTimeout(projectSwitchStartTimer)
+  if (projectSwitchStartFrame) window.cancelAnimationFrame(projectSwitchStartFrame)
+  if (projectPositionPinFrame) window.cancelAnimationFrame(projectPositionPinFrame)
+  if (scrollBehaviorRestoreFrame) {
+    window.cancelAnimationFrame(scrollBehaviorRestoreFrame)
+  }
+  if (isRootScrollBehaviorForced) document.documentElement.style.scrollBehavior = previousRootScrollBehavior ?? ''
 })
 </script>
 
@@ -739,17 +945,23 @@ onBeforeUnmount(() => {
       </div>
       <p class="section-hint">悬浮卡片或点击按钮即可查看详情</p>
       <div class="project-list" :class="{ 'is-switching': isProjectSwitching }">
+        <template v-for="project in projects" :key="project.name">
+        <div
+          v-if="projectSwitchSpacerProject === project.name"
+          class="project-switch-spacer"
+          :class="{ 'is-open': isProjectSwitchSpacerOpen }"
+          :style="getProjectSwitchSpacerStyle(project.name)"
+          aria-hidden="true"
+        ></div>
         <article
-          v-for="project in projects"
-          :key="project.name"
-          class="project-card"
-          :class="{ 'is-active': activeProject === project.name }"
-          tabindex="0"
-          @pointerenter="openProjectByPointer(project.name, $event)"
-          @pointerleave="closeProjectByPointer(project.name, $event)"
-          @focusin="openProjectByFocus(project.name, $event)"
-          @click="openProject(project.name, $event)"
-        >
+            class="project-card"
+            :class="{ 'is-active': activeProject === project.name }"
+            tabindex="0"
+            @pointerenter="openProjectByPointer(project.name, $event)"
+            @pointerleave="closeProjectByPointer(project.name, $event)"
+            @focusin="openProjectByFocus(project.name, $event)"
+            @click="openProject(project.name, $event)"
+          >
           <div class="project-summary">
             <span>
               <h3>{{ project.name }}</h3>
@@ -771,7 +983,16 @@ onBeforeUnmount(() => {
             </button>
           </div>
           <p>{{ project.description }}</p>
-          <div class="project-detail" :class="{ 'is-open': activeProject === project.name }">
+          <div
+            class="project-detail"
+            :class="{
+              'is-open': activeProject === project.name,
+              'is-leaving': leavingProject === project.name && activeProject !== project.name,
+              'is-leaving-closing':
+                leavingProject === project.name && activeProject !== project.name && isLeavingProjectClosing,
+            }"
+            :style="getProjectDetailStyle(project.name)"
+          >
             <div class="project-detail-inner">
             <div
               v-if="'mediaGroups' in project"
@@ -834,7 +1055,8 @@ onBeforeUnmount(() => {
             </ul>
             </div>
           </div>
-        </article>
+          </article>
+        </template>
       </div>
     </section>
 
