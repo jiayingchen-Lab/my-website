@@ -384,6 +384,8 @@ let typeTimer: number | undefined
 let projectSwitchTimer: number | undefined
 let projectSwitchStartTimer: number | undefined
 let projectSwitchStartFrame: number | undefined
+let projectCloseTimer: number | undefined
+let projectCloseStartFrame: number | undefined
 let projectPositionPinFrame: number | undefined
 let scrollBehaviorRestoreFrame: number | undefined
 let previousRootScrollBehavior: string | undefined
@@ -478,8 +480,13 @@ function stopProjectPositionPin() {
   restorePageScrollBehaviorSoon()
 }
 
-function pinProjectCardPosition(card: HTMLElement | undefined, top: number | undefined, duration = 760) {
-  if (!card || top === undefined) return
+function pinProjectCardPosition(
+  card: HTMLElement | undefined,
+  anchor: number | undefined,
+  duration = 760,
+  edge: 'top' | 'bottom' = 'top',
+) {
+  if (!card || anchor === undefined) return
   if (projectPositionPinFrame) window.cancelAnimationFrame(projectPositionPinFrame)
 
   forceInstantPageScroll()
@@ -487,7 +494,9 @@ function pinProjectCardPosition(card: HTMLElement | undefined, top: number | und
   const startedAt = performance.now()
 
   const keepPinned = (now: number) => {
-    const delta = card.getBoundingClientRect().top - top
+    const rect = card.getBoundingClientRect()
+    const current = edge === 'bottom' ? rect.bottom : rect.top
+    const delta = current - anchor
     if (Math.abs(delta) > 0.25) {
       window.scrollBy(0, delta)
     }
@@ -599,6 +608,17 @@ function cleanupProjectSwitch(card?: HTMLElement) {
   }
 }
 
+function clearProjectCloseTimers() {
+  if (projectCloseTimer) {
+    window.clearTimeout(projectCloseTimer)
+    projectCloseTimer = undefined
+  }
+  if (projectCloseStartFrame) {
+    window.cancelAnimationFrame(projectCloseStartFrame)
+    projectCloseStartFrame = undefined
+  }
+}
+
 function openProject(
   projectName: string,
   event?: Event,
@@ -627,6 +647,7 @@ function openProject(
       window.cancelAnimationFrame(projectSwitchStartFrame)
       projectSwitchStartFrame = undefined
     }
+    clearProjectCloseTimers()
     const previousDetail = getOpenProjectDetailMetrics()
     leavingProject.value = previousProject
     leavingProjectHeight.value = previousDetail.height
@@ -636,6 +657,7 @@ function openProject(
     projectSwitchSpacerHeight.value = isSwitchingDown ? previousDetail.flowHeight : 0
     isProjectSwitchSpacerOpen.value = false
   } else {
+    clearProjectCloseTimers()
     leavingProject.value = ''
     leavingProjectHeight.value = 0
     isLeavingProjectClosing.value = false
@@ -690,7 +712,8 @@ function closeProjectByPointer(projectName: string, event: PointerEvent) {
   if (event.pointerType !== 'mouse') return
   const nextTarget = event.relatedTarget instanceof HTMLElement ? event.relatedTarget : undefined
   if (nextTarget?.closest('.project-card')) return
-  closeProject(projectName, { force: true })
+  const card = event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined
+  closeProject(projectName, { force: true, anchor: card, lockEdge: 'bottom' })
 }
 
 function openProjectByFocus(projectName: string, event: FocusEvent) {
@@ -699,10 +722,20 @@ function openProjectByFocus(projectName: string, event: FocusEvent) {
   openProject(projectName, event)
 }
 
-function closeProject(projectName: string, options: { force?: boolean } = {}) {
+function closeProject(
+  projectName: string,
+  options: { force?: boolean; anchor?: HTMLElement; lockEdge?: 'top' | 'bottom' } = {},
+) {
   if (previewImage.value) return
   if (!options.force && performance.now() - lastPageScrollAt.value < 220) return
   if (activeProject.value !== projectName) return
+  const closestCard = options.anchor?.closest('.project-card')
+  const card = closestCard instanceof HTMLElement ? closestCard : options.anchor
+  const cardRectBeforeClose = card?.getBoundingClientRect()
+  const lockEdge = options.lockEdge ?? 'top'
+  const anchorBeforeClose =
+    cardRectBeforeClose && lockEdge === 'bottom' ? cardRectBeforeClose.bottom : cardRectBeforeClose?.top
+  const detailMetrics = getOpenProjectDetailMetrics()
   if (projectSwitchTimer) {
     window.clearTimeout(projectSwitchTimer)
     projectSwitchTimer = undefined
@@ -715,22 +748,65 @@ function closeProject(projectName: string, options: { force?: boolean } = {}) {
     window.cancelAnimationFrame(projectSwitchStartFrame)
     projectSwitchStartFrame = undefined
   }
+  clearProjectCloseTimers()
   stopProjectPositionPin()
+
+  leavingProject.value = projectName
+  leavingProjectHeight.value = detailMetrics.height
+  isLeavingProjectClosing.value = false
   activeProject.value = ''
   activeProjectHeight.value = 0
   isProjectSwitching.value = false
-  leavingProject.value = ''
-  leavingProjectHeight.value = 0
-  isLeavingProjectClosing.value = false
   projectSwitchSpacerProject.value = ''
   projectSwitchSpacerHeight.value = 0
   isProjectSwitchSpacerOpen.value = false
   projectDetailResizeObserver?.disconnect()
+
+  nextTick(() => {
+    if (card && anchorBeforeClose !== undefined) {
+      const rect = card.getBoundingClientRect()
+      const current = lockEdge === 'bottom' ? rect.bottom : rect.top
+      adjustPageScrollInstant(current - anchorBeforeClose)
+      pinProjectCardPosition(card, anchorBeforeClose, 1600, lockEdge)
+    }
+
+    projectCloseStartFrame = requestAnimationFrame(() => {
+      isLeavingProjectClosing.value = true
+      projectCloseStartFrame = undefined
+
+      if (card && anchorBeforeClose !== undefined) {
+        nextTick(() => {
+          const rect = card.getBoundingClientRect()
+          const current = lockEdge === 'bottom' ? rect.bottom : rect.top
+          adjustPageScrollInstant(current - anchorBeforeClose)
+          pinProjectCardPosition(card, anchorBeforeClose, 1500, lockEdge)
+        })
+      }
+    })
+
+    projectCloseTimer = window.setTimeout(() => {
+      leavingProject.value = ''
+      leavingProjectHeight.value = 0
+      isLeavingProjectClosing.value = false
+      projectCloseTimer = undefined
+
+      if (card && anchorBeforeClose !== undefined) {
+        nextTick(() => {
+          const rect = card.getBoundingClientRect()
+          const current = lockEdge === 'bottom' ? rect.bottom : rect.top
+          adjustPageScrollInstant(current - anchorBeforeClose)
+          pinProjectCardPosition(card, anchorBeforeClose, 760, lockEdge)
+        })
+      }
+    }, 940)
+  })
 }
 
 function toggleProject(projectName: string, event: Event) {
   if (activeProject.value === projectName) {
-    closeProject(projectName, { force: true })
+    const source = event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined
+    const card = source?.closest('.project-card')
+    closeProject(projectName, { force: true, anchor: card instanceof HTMLElement ? card : source, lockEdge: 'top' })
     return
   }
   openProject(projectName, event)
@@ -802,6 +878,8 @@ onBeforeUnmount(() => {
   if (projectSwitchTimer) window.clearTimeout(projectSwitchTimer)
   if (projectSwitchStartTimer) window.clearTimeout(projectSwitchStartTimer)
   if (projectSwitchStartFrame) window.cancelAnimationFrame(projectSwitchStartFrame)
+  if (projectCloseTimer) window.clearTimeout(projectCloseTimer)
+  if (projectCloseStartFrame) window.cancelAnimationFrame(projectCloseStartFrame)
   if (projectPositionPinFrame) window.cancelAnimationFrame(projectPositionPinFrame)
   if (scrollBehaviorRestoreFrame) {
     window.cancelAnimationFrame(scrollBehaviorRestoreFrame)
