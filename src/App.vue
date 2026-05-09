@@ -16,6 +16,16 @@ import yishengMini01 from './assets/projects/QQ20260507-223352.png'
 import yishengMini02 from './assets/projects/QQ20260507-223428.png'
 import yishengMini03 from './assets/projects/QQ20260507-223500.png'
 import yishengMini04 from './assets/projects/QQ20260507-223538.png'
+import aiDaily01 from './assets/projects/QQ20260508-214432.png'
+import aiDaily02 from './assets/projects/QQ20260508-214510.png'
+import aiDaily03 from './assets/projects/QQ20260508-214632.png'
+import aiDaily04 from './assets/projects/QQ20260508-214719.png'
+import aiDailyPoster from './assets/projects/2026.5.08_1.png'
+import aiDailyPoster02 from './assets/projects/2026.5.08_2.png'
+import aiDailyPoster05 from './assets/projects/2026.5.08_5.png'
+import cropHealth01 from './assets/projects/QQ20260508-231543.png'
+import cropHealth02 from './assets/projects/QQ20260508-231740.png'
+import cropHealth03 from './assets/projects/QQ20260508-231955.png'
 
 const profile = {
   name: '陈佳莹',
@@ -108,6 +118,36 @@ const projects = [
     ],
   },
   {
+    name: '面向 AI 行业资讯生产分发与审核场景的自动化日报系统',
+    stack:
+      'VVue 3 · pgvector · SQLx · RAG · Rust · Cargo Workspace · JWT · Embedding · 通义千问、DeepSeek、DashScope',
+    description:
+      '本项目面向 AI 行业资讯生产分发与审核场景，围绕“采集、理解、筛选、整理、审核、发布”完整链路构建自动化日报系统。系统支持从新闻网站、ProductHunt、Newsletter 邮件、X/Twitter、n8n 推送等渠道获取原始信息，并通过解析清洗、翻译、AI 相关性判断、摘要压缩、核心事实提取、分类评分、向量化检索和自动审核，提升日报内容密度与发布效率。',
+    mediaGroups: [
+      {
+        id: 'ai-daily-poster',
+        tabLabel: '日报成品',
+        title: '公众号日报成品图',
+        note: '自动生成后的公众号日报内容预览与发布物料',
+        kind: 'poster',
+        images: [aiDailyPoster, aiDailyPoster02, aiDailyPoster05],
+      },
+      {
+        id: 'ai-daily',
+        tabLabel: '日报系统',
+        title: 'AI 行业资讯自动化日报系统',
+        note: '资讯采集、候选召回、向量去重、AI 审核、人工复核与发布管理',
+        kind: 'desktop',
+        images: [aiDaily03, aiDaily02, aiDaily01, aiDaily04],
+      },
+    ],
+    details: [
+      '日报内容生成模块：负责日报内容从候选资讯到最终稿件的自动生成流程。调用大模型提取每条资讯的核心事实，重点识别事件主体、关键动作、核心数据和行业影响。例如“某公司发布了什么产品”“某机构完成了多少融资”“某模型在哪些能力上取得进展”“某开源项目解决了什么问题”等。相比直接使用原文正文，核心事实更短、更聚焦，能够帮助系统更准确地判断资讯价值，避免标题相似但内容不同、正文冗长但重点不清的问题。',
+      '向量化与去重模块：负责对处理后的资讯内容进行语义向量化和相似度去重。系统会将正文摘要、格式化内容、核心事实等文本转换为向量，并存入 pgvector 向量检索服务中，形成可检索的内容向量库。系统会使用当前内容向量与历史内容进行相似度检索，判断是否存在语义高度相似的资讯。查询时会结合时间窗口、相似度阈值、返回数量等参数，避免同一事件因来自不同媒体、不同标题或不同表达方式而被重复收录。该模块不仅用于简单的重复判断，也用于辅助内容质量控制。减少日报冗余，提高信息密度。',
+      'AI 内容自动审核功能开发：负责构建 AI 自动审核与人工复核结合的内容审核流程。系统会在日报内容生成后，对每条日报条目进行智能检测，识别内容是否存在真实性不足、时效性不强、AI 相关性弱、表述不准确或需要修改删除等问题，并生成对应的审核原因和处理建议。在审核规则设计上，系统基于分级处置机制对内容进行状态标注，包括待审核、审核通过、已拦截、待复核等状态。不同状态对应不同处理路径，例如审核通过的内容可进入发布前确认流程，疑似问题内容进入人工复核，明显不符合要求的内容可被拦截。同时，开发了审核工作台的核心业务能力，包括审核状态标注、审核结论展示、问题原因记录、修改建议展示和审核结果保存。系统将 AI 智能检测结果与人工运营处理流程衔接起来，使运营人员能够快速定位问题内容，并根据审核建议进行修改、删除或确认。',
+    ],
+  },
+  {
     name: '智能社区综合管理系统',
     stack: 'SpringBoot · MyBatis-Plus · Vue · MySQL · Redis',
     description:
@@ -120,45 +160,31 @@ const projects = [
     ],
   },
   {
-    name: '短视频内容低俗化识别与过滤平台',
-    stack: 'SpringBoot · MyBatis-Plus · Vue · MySQL · Redis',
-    description:
-      '面向短视频平台构建“智能检测 + 人工审核”内容安全流程，负责技术选型、数据库设计、视频上传服务、分级处置规则、审核工作台与运营数据可视化。',
-    details: [
-      '参与项目初期技术选型、数据库表设计和全链路业务流程梳理。',
-      '设计合规放行、疑似复核、违规拦截等分级处置规则，并推动团队开发落地。',
-      '实现短视频文件流式上传、格式校验、大小限制与封面上传预览。',
-      '开发审核工作台状态管理、风险等级标注、实时审核流水、分页查询和处理时长格式化。',
-    ],
-  },
-  {
     name: '作物健康监测系统',
     stack: 'Python · PyTorch · YOLOv8 · CNN · Flask',
     description:
-      '基于 YOLOv8 + CBAM-CNN 的作物叶片病虫害识别平台，支持图片、视频与摄像头实时检测，提供模型切换、结果可视化、报告下载和处理后视频下载。',
-    details: [
-      '采用两阶段检测分类方案，先使用 YOLOv8 定位病害区域，再将裁剪区域输入 CNN 分类模型进行细粒度识别。',
-      '引入 CBAM 注意力机制，使模型更关注病斑颜色、形状、纹理、边缘轮廓和局部病变区域。',
-      '支持图片上传检测、视频逐帧分析、摄像头实时检测、检测框展示与帧级检测记录。',
-      '提供病害类别统计、平均置信度、平均 FPS、检测报告下载和处理后视频下载。',
+      '基于深度学习与计算机视觉的作物病害检测 Web 系统，主要面向农业生产中的作物叶片健康监测场景，支持马铃薯、番茄、玉米、大豆等多种作物的健康与病害类别识别。统能够对上传的作物叶片图片、视频文件以及浏览器摄像头实时画面进行智能分析，自动识别叶片中的病害类型，定位疑似病害区域，并以可视化形式展示检测结果。用户可以在 Web 页面中选择不同模型（YOLO、YOLO+CNN、YOLO+CNN+CBAM三个模型）进行检测，并查看检测框、类别名称、置信度、边界框坐标、归一化坐标以及处理后的检测图像。对于视频检测场景，系统支持上传视频后逐帧分析，输出带检测框的视频结果，并统计总帧数、检出帧数、总检测数量、类别出现次数、平均置信度和帧级检测详情。实时检测页面则通过浏览器摄像头采集画面，按固定时间间隔将视频帧提交给后端模型进行识别，并在页面中动态绘制检测结果和运行统计信息。 ',
+    mediaGroups: [
+      {
+        id: 'crop-health',
+        tabLabel: '检测系统',
+        title: '作物健康监测系统',
+        note: '图片病害检测、检测结果可视化与模型数据展示',
+        kind: 'desktop',
+        images: [cropHealth01, cropHealth02, cropHealth03],
+      },
     ],
-  },
-  {
-    name: '中医临床诊疗智能助手',
-    stack: 'PyTorch · LlamaIndex · RAG · Embedding',
-    description:
-      '基于中医临床术语语料构建 RAG 智能问答流程，完成文档切分、向量索引、查询引擎、专属 Prompt、检索溯源和全流程日志监控。',
     details: [
-      '基于《中医临床诊疗术语》语料进行预处理、文档切分和向量化。',
-      '调用 Embedding 模型构建 VectorStoreIndex 向量索引，并配置查询引擎检索参数。',
-      '自定义中文医疗场景 Prompt 模板，封装“Query 输入 - 向量检索 - 上下文增强 - LLM 生成 - 答案输出”工作流。',
-      '基于 LlamaDebugHandler 实现检索 Top-K 片段展示、LLM 输入输出解析和 RAG 全流程日志监控。',
+      '系统整体设计与功能规划：梳理作物病害检测系统的整体业务流程，确定系统主要功能模块，包括用户登录注册、图片病害检测、视频病害检测、摄像头实时检测、模型数据展示等。根据项目需求设计前后端交互流程，使系统能够完成从图像输入、模型推理到结果展示的完整检测闭环。',
+      '后端服务与接口开发：使用 Flask 搭建系统后端服务，完成页面路由、用户接口、检测接口、模型数据接口和视频处理接口的开发。后端主要负责接收前端上传的图片或视频数据，调用深度学习模型进行推理，并将检测类别、置信度、检测框坐标、处理后图像或视频等结果返回给前端。',
+      '作物病害检测模型接入：YOLOv8、YOLOv8 + CNN、YOLOv8 + CBAM-CNN 三类模型分别进行设计、训练并将模型最终方案接入系统。YOLOv8 用于完成病害区域定位和初步分类，两阶段模型则在 YOLO 检测的基础上进一步裁剪病害区域，并通过 CNN 或 CBAM-CNN 分类器进行更精细的病害识别，提高系统对不同作物病害类别的区分能力。',
+      '检测结果可视化与数据展示：包括在图片和视频帧中绘制病害检测框、显示病害类别和置信度，并统计视频检测中的总帧数、检出帧数、检测数量和类别分布等信息。同时负责读取模型训练和验证过程中生成的 CSV、JSON、图像等结果文件，用于展示训练曲线、验证指标、混淆矩阵和模型对比数据。',
     ],
   },
 ]
 
-const activeProject = ref(projects[0].name)
-const activeMediaTab = ref('admin')
+const activeProject = ref('')
+const activeMediaTab = ref(projects[0].mediaGroups?.[0].id ?? '')
 const activeSection = ref('about')
 const isScrolled = ref(false)
 const scrollProgress = ref(0)
@@ -172,22 +198,42 @@ const previewTitle = ref('')
 const previewScale = ref(1)
 const previewOffsetX = ref(0)
 const previewOffsetY = ref(0)
+const previewDisplayWidth = ref(0)
+const previewDisplayHeight = ref(0)
+const previewReady = ref(false)
+const previewPageScrollY = ref(0)
 const isPreviewDragging = ref(false)
 const previewDragStart = ref({ x: 0, y: 0, offsetX: 0, offsetY: 0 })
 const previewImageRef = ref<HTMLImageElement | null>(null)
 const previewCanvasRef = ref<HTMLElement | null>(null)
+const lastPageScrollAt = ref(0)
 
 function fitPreviewImage() {
   const image = previewImageRef.value
   const canvas = previewCanvasRef.value
   if (!image || !canvas || !image.naturalWidth || !image.naturalHeight) return
 
-  const availableWidth = canvas.clientWidth - 36
-  const availableHeight = canvas.clientHeight - 36
-  const fitScale = Math.min(1, availableWidth / image.naturalWidth, availableHeight / image.naturalHeight)
-  previewScale.value = Number(fitScale.toFixed(3))
-  previewOffsetX.value = 0
-  previewOffsetY.value = 0
+  centerPreviewImage(1)
+  canvas.scrollTo({ left: 0, top: 0 })
+  previewReady.value = true
+}
+
+function centerPreviewImage(scale = previewScale.value) {
+  const image = previewImageRef.value
+  const canvas = previewCanvasRef.value
+  if (!image || !canvas || !image.naturalWidth || !image.naturalHeight) return
+
+  const style = window.getComputedStyle(canvas)
+  const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
+  const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
+  const availableWidth = canvas.clientWidth - paddingX
+  const availableHeight = canvas.clientHeight - paddingY
+
+  previewScale.value = scale
+  previewDisplayWidth.value = Math.round(image.naturalWidth * scale)
+  previewDisplayHeight.value = Math.round(image.naturalHeight * scale)
+  previewOffsetX.value = Math.max(0, Math.round((availableWidth - previewDisplayWidth.value) / 2))
+  previewOffsetY.value = Math.max(0, Math.round((availableHeight - previewDisplayHeight.value) / 2))
 }
 
 function getProjectIntro(projectName: string) {
@@ -203,12 +249,23 @@ function getProjectStack(projectName: string) {
   return projects.find((item) => item.name === projectName)?.stack ?? ''
 }
 
+function getDefaultMediaTab(projectName: string) {
+  const project = projects.find((item) => item.name === projectName)
+  const mediaGroups = project && 'mediaGroups' in project ? project.mediaGroups : undefined
+  if (!mediaGroups?.length) return activeMediaTab.value
+  return mediaGroups[0].id
+}
+
 function openPreview(src: string, title: string, index: number) {
+  previewPageScrollY.value = window.scrollY
+  previewReady.value = false
   previewImage.value = src
   previewTitle.value = `${title}界面展示 ${index + 1}`
   previewScale.value = 1
   previewOffsetX.value = 0
   previewOffsetY.value = 0
+  previewDisplayWidth.value = 0
+  previewDisplayHeight.value = 0
 }
 
 function closePreview() {
@@ -217,16 +274,24 @@ function closePreview() {
   previewScale.value = 1
   previewOffsetX.value = 0
   previewOffsetY.value = 0
+  previewDisplayWidth.value = 0
+  previewDisplayHeight.value = 0
+  previewReady.value = false
   isPreviewDragging.value = false
+  nextTick(() => {
+    const root = document.documentElement
+    const previousScrollBehavior = root.style.scrollBehavior
+    root.style.scrollBehavior = 'auto'
+    window.scrollTo(0, previewPageScrollY.value)
+    requestAnimationFrame(() => {
+      root.style.scrollBehavior = previousScrollBehavior
+    })
+  })
 }
 
 function zoomPreview(step: number) {
   const nextScale = Math.min(2.5, Math.max(0.12, Number((previewScale.value + step).toFixed(2))))
-  previewScale.value = nextScale
-  if (nextScale < 1) {
-    previewOffsetX.value = 0
-    previewOffsetY.value = 0
-  }
+  centerPreviewImage(nextScale)
 }
 
 function handlePreviewWheel(event: WheelEvent) {
@@ -357,35 +422,57 @@ function resetTilt(event: MouseEvent) {
   target.style.setProperty('--tilt-y', '0deg')
 }
 
-async function toggleProject(projectName: string, event: MouseEvent) {
-  const card = (event.currentTarget as HTMLElement).closest('.project-card')
-  const previousTop = card?.getBoundingClientRect().top
-  const root = document.documentElement
-  const previousScrollBehavior = root.style.scrollBehavior
+function openProject(projectName: string, event?: Event) {
+  if (activeProject.value === projectName) return
+  const source = event?.currentTarget instanceof HTMLElement ? event.currentTarget : undefined
+  const card = source?.closest('.project-card') instanceof HTMLElement ? source.closest('.project-card') : source
+  const topBeforeOpen = card?.getBoundingClientRect().top
 
-  activeProject.value = activeProject.value === projectName ? '' : projectName
+  activeProject.value = projectName
+  activeMediaTab.value = getDefaultMediaTab(projectName)
 
-  await nextTick()
-  requestAnimationFrame(() => {
-    if (previousTop === undefined) {
-      root.style.scrollBehavior = previousScrollBehavior
-      return
-    }
-    const nextTop = card?.getBoundingClientRect().top
-    if (nextTop === undefined) {
-      root.style.scrollBehavior = previousScrollBehavior
-      return
-    }
-    root.style.scrollBehavior = 'auto'
-    window.scrollTo(0, window.scrollY + nextTop - previousTop)
-    requestAnimationFrame(() => {
-      root.style.scrollBehavior = previousScrollBehavior
-    })
+  if (!card || topBeforeOpen === undefined) return
+  nextTick(() => {
+    const topAfterOpen = card.getBoundingClientRect().top
+    const offset = topAfterOpen - topBeforeOpen
+    if (Math.abs(offset) > 1) window.scrollBy(0, offset)
   })
+}
+
+function openProjectByPointer(projectName: string, event: PointerEvent) {
+  if (event.pointerType !== 'mouse') return
+  openProject(projectName, event)
+}
+
+function closeProjectByPointer(projectName: string, event: PointerEvent) {
+  if (event.pointerType !== 'mouse') return
+  closeProject(projectName)
+}
+
+function openProjectByFocus(projectName: string, event: FocusEvent) {
+  const target = event.target instanceof HTMLElement ? event.target : undefined
+  if (target?.closest('.project-detail-button')) return
+  openProject(projectName, event)
+}
+
+function closeProject(projectName: string, options: { force?: boolean } = {}) {
+  if (previewImage.value) return
+  if (!options.force && performance.now() - lastPageScrollAt.value < 220) return
+  if (activeProject.value !== projectName) return
+  activeProject.value = ''
+}
+
+function toggleProject(projectName: string, event: Event) {
+  if (activeProject.value === projectName) {
+    closeProject(projectName, { force: true })
+    return
+  }
+  openProject(projectName, event)
 }
 
 onMounted(() => {
   scrollListener = () => {
+    lastPageScrollAt.value = performance.now()
     const maxScroll = document.documentElement.scrollHeight - window.innerHeight
     scrollProgress.value = maxScroll > 0 ? (window.scrollY / maxScroll) * 100 : 0
     isScrolled.value = window.scrollY > 18
@@ -460,10 +547,10 @@ onBeforeUnmount(() => {
       <div class="scroll-progress" :style="{ width: `${scrollProgress}%` }" aria-hidden="true"></div>
       <a href="#about">{{ profile.name }}</a>
       <div class="nav-links">
-        <a href="#skills" :class="{ 'is-active': activeSection === 'skills' }">技能</a>
         <a href="#experience" :class="{ 'is-active': activeSection === 'experience' }">经历</a>
-        <a href="#practice" :class="{ 'is-active': activeSection === 'practice' }">实践</a>
         <a href="#projects" :class="{ 'is-active': activeSection === 'projects' }">项目</a>
+        <a href="#practice" :class="{ 'is-active': activeSection === 'practice' }">实践</a>
+        <a href="#skills" :class="{ 'is-active': activeSection === 'skills' }">技能</a>
       </div>
     </nav>
 
@@ -507,23 +594,6 @@ onBeforeUnmount(() => {
           <strong>{{ profile.location }}</strong>
         </div>
       </aside>
-    </section>
-
-    <section id="skills" class="content-band reveal">
-      <div class="section-heading">
-        <p class="eyebrow">Technical Stack</p>
-        <h2>技术能力</h2>
-      </div>
-      <div class="skill-grid">
-        <article v-for="group in skills" :key="group.title" class="skill-card reveal">
-          <div class="skill-card-header">
-            <h3>{{ group.title }}</h3>
-          </div>
-          <div class="tag-list">
-            <span v-for="(item, index) in group.items" :key="item" :style="{ '--tag-index': index }">{{ item }}</span>
-          </div>
-        </article>
-      </div>
     </section>
 
     <section class="content-band education-band reveal">
@@ -593,6 +663,112 @@ onBeforeUnmount(() => {
       </div>
     </section>
 
+    <section id="projects" class="content-band reveal">
+      <div class="section-heading">
+        <p class="eyebrow">Selected Work</p>
+        <h2>项目经历</h2>
+      </div>
+      <p class="section-hint">悬浮卡片或点击按钮即可查看详情</p>
+      <div class="project-list">
+        <article
+          v-for="project in projects"
+          :key="project.name"
+          class="project-card"
+          :class="{ 'is-active': activeProject === project.name }"
+          tabindex="0"
+          @pointerenter="openProjectByPointer(project.name, $event)"
+          @pointerleave="closeProjectByPointer(project.name, $event)"
+          @focusin="openProjectByFocus(project.name, $event)"
+          @click="openProject(project.name, $event)"
+        >
+          <div class="project-summary">
+            <span>
+              <h3>{{ project.name }}</h3>
+              <p class="stack">{{ project.stack }}</p>
+            </span>
+            <button
+              class="project-detail-button"
+              :class="{ 'is-open': activeProject === project.name }"
+              type="button"
+              :aria-expanded="activeProject === project.name"
+              :aria-label="activeProject === project.name ? '收起' : '点击查看详情'"
+              @click.stop="toggleProject(project.name, $event)"
+            >
+              <span class="project-detail-button-label" aria-hidden="true">
+                <span class="project-detail-button-text is-detail">点击查看详情</span>
+                <span class="project-detail-button-text is-collapse">收起</span>
+              </span>
+              <span class="project-detail-button-icon" aria-hidden="true"></span>
+            </button>
+          </div>
+          <p>{{ project.description }}</p>
+          <div class="project-detail" :class="{ 'is-open': activeProject === project.name }">
+            <div class="project-detail-inner">
+            <div
+              v-if="'mediaGroups' in project"
+              class="project-media"
+              :class="{ 'is-single-media': project.mediaGroups?.length === 1 }"
+            >
+              <div v-if="(project.mediaGroups?.length ?? 0) > 1" class="project-media-switch">
+                <div class="project-media-guide">
+                  <strong>界面展示</strong>
+                  <span>点击右侧端类型切换对应截图</span>
+                </div>
+                <div class="project-media-tabs" role="tablist" :aria-label="`${project.name}界面展示`">
+                  <button
+                    v-for="group in project.mediaGroups"
+                    :key="group.id"
+                    type="button"
+                    role="tab"
+                    :aria-selected="activeMediaTab === group.id"
+                    :class="{ 'is-active': activeMediaTab === group.id }"
+                    @click.stop="activeMediaTab = group.id"
+                  >
+                    <span class="tab-title">{{ group.tabLabel }}</span>
+                    <span class="tab-note">{{ group.images.length }} 张界面展示</span>
+                  </button>
+                </div>
+              </div>
+              <section
+                v-for="group in project.mediaGroups"
+                :key="group.title"
+                class="project-media-group"
+                :class="`is-${group.kind}`"
+                v-show="activeMediaTab === group.id"
+              >
+                <header v-if="(project.mediaGroups?.length ?? 0) > 1">
+                  <strong>{{ group.title }}</strong>
+                  <span>{{ group.note }}</span>
+                </header>
+                <div class="project-media-grid">
+                  <figure
+                    v-for="(src, index) in group.images"
+                    :key="src"
+                    :class="{ 'is-featured': index === 0 }"
+                  >
+                    <button
+                      class="project-preview-trigger"
+                      type="button"
+                      :aria-label="`预览${group.title}界面展示 ${index + 1}`"
+                      @click.stop="openPreview(src, group.title, index)"
+                    >
+                      <img :src="src" :alt="`${group.title}界面展示 ${index + 1}`" loading="lazy" decoding="async" />
+                      <span>点击预览</span>
+                    </button>
+                  </figure>
+                </div>
+              </section>
+            </div>
+            <h4>负责内容</h4>
+            <ul>
+              <li v-for="detail in project.details" :key="detail">{{ detail }}</li>
+            </ul>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <section id="practice" class="content-band practice-band reveal">
       <div class="section-heading">
         <p class="eyebrow">Campus Practice</p>
@@ -609,89 +785,18 @@ onBeforeUnmount(() => {
       </div>
     </section>
 
-    <section id="projects" class="content-band reveal">
+    <section id="skills" class="content-band reveal">
       <div class="section-heading">
-        <p class="eyebrow">Selected Work</p>
-        <h2>项目经历</h2>
+        <p class="eyebrow">Technical Stack</p>
+        <h2>技术能力</h2>
       </div>
-      <div class="project-list">
-        <article
-          v-for="project in projects"
-          :key="project.name"
-          class="project-card"
-          :class="{ 'is-active': activeProject === project.name }"
-        >
-          <button
-            class="project-summary"
-            type="button"
-            :aria-expanded="activeProject === project.name"
-            @click="toggleProject(project.name, $event)"
-          >
-            <span>
-              <h3>{{ project.name }}</h3>
-              <p class="stack">{{ project.stack }}</p>
-            </span>
-            <span class="project-toggle" aria-hidden="true">
-              {{ activeProject === project.name ? '收起' : '点击查看详情' }}
-            </span>
-          </button>
-          <p>{{ project.description }}</p>
-          <div class="project-detail" :class="{ 'is-open': activeProject === project.name }">
-            <div v-if="'mediaGroups' in project" class="project-media">
-              <div class="project-media-switch">
-                <div class="project-media-guide">
-                  <strong>界面展示</strong>
-                  <span>点击右侧端类型切换对应截图</span>
-                </div>
-                <div class="project-media-tabs" role="tablist" aria-label="颐生悦系统端展示">
-                  <button
-                    v-for="group in project.mediaGroups"
-                    :key="group.id"
-                    type="button"
-                    role="tab"
-                    :aria-selected="activeMediaTab === group.id"
-                    :class="{ 'is-active': activeMediaTab === group.id }"
-                    @click="activeMediaTab = group.id"
-                  >
-                    <span class="tab-title">{{ group.tabLabel }}</span>
-                    <span class="tab-note">{{ group.images.length }} 张界面展示</span>
-                  </button>
-                </div>
-              </div>
-              <section
-                v-for="group in project.mediaGroups"
-                :key="group.title"
-                class="project-media-group"
-                :class="`is-${group.kind}`"
-                v-show="activeMediaTab === group.id"
-              >
-                <header>
-                  <strong>{{ group.title }}</strong>
-                  <span>{{ group.note }}</span>
-                </header>
-                <div class="project-media-grid">
-                  <figure
-                    v-for="(src, index) in group.images"
-                    :key="src"
-                    :class="{ 'is-featured': index === 0 }"
-                  >
-                    <button
-                      class="project-preview-trigger"
-                      type="button"
-                      :aria-label="`预览${group.title}界面展示 ${index + 1}`"
-                      @click="openPreview(src, group.title, index)"
-                    >
-                      <img :src="src" :alt="`${group.title}界面展示 ${index + 1}`" loading="lazy" />
-                      <span>点击预览</span>
-                    </button>
-                  </figure>
-                </div>
-              </section>
-            </div>
-            <h4>负责内容</h4>
-            <ul>
-              <li v-for="detail in project.details" :key="detail">{{ detail }}</li>
-            </ul>
+      <div class="skill-grid">
+        <article v-for="group in skills" :key="group.title" class="skill-card reveal">
+          <div class="skill-card-header">
+            <h3>{{ group.title }}</h3>
+          </div>
+          <div class="tag-list">
+            <span v-for="(item, index) in group.items" :key="item" :style="{ '--tag-index': index }">{{ item }}</span>
           </div>
         </article>
       </div>
@@ -729,7 +834,13 @@ onBeforeUnmount(() => {
               ref="previewImageRef"
               :src="previewImage"
               :alt="previewTitle"
-              :style="{ transform: `translate(${previewOffsetX}px, ${previewOffsetY}px) scale(${previewScale})` }"
+              :class="{ 'is-ready': previewReady }"
+              :style="{
+                width: `${previewDisplayWidth}px`,
+                height: `${previewDisplayHeight}px`,
+                marginLeft: `${previewOffsetX}px`,
+                marginTop: `${previewOffsetY}px`,
+              }"
               @load="fitPreviewImage"
               draggable="false"
             />
