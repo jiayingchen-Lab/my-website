@@ -12,10 +12,11 @@ import yishengStaff02 from './assets/projects/QQ20260507-223110.png'
 import yishengStaff03 from './assets/projects/QQ20260507-223132.png'
 import yishengStaff04 from './assets/projects/QQ20260507-223204.png'
 import yishengStaff05 from './assets/projects/QQ20260507-232420.png'
-import yishengMini01 from './assets/projects/QQ20260507-223352.png'
-import yishengMini02 from './assets/projects/QQ20260507-223428.png'
-import yishengMini03 from './assets/projects/QQ20260507-223500.png'
-import yishengMini04 from './assets/projects/QQ20260507-223538.png'
+import yishengMini01 from './assets/projects/Screenshot_20260509_170956.jpg'
+import yishengMini02 from './assets/projects/Screenshot_20260509_171304.jpg'
+import yishengMini03 from './assets/projects/Screenshot_2026_0509_171333.jpg'
+import yishengMini04 from './assets/projects/Screenshot_20260509_170810.jpg'
+import yishengMini05 from './assets/projects/Screenshot_2026_0509_171218.jpg'
 import aiDaily01 from './assets/projects/QQ20260508-214432.png'
 import aiDaily02 from './assets/projects/QQ20260508-214510.png'
 import aiDaily03 from './assets/projects/QQ20260508-214632.png'
@@ -30,12 +31,11 @@ import cropHealth03 from './assets/projects/QQ20260508-231955.png'
 const profile = {
   name: '陈佳莹',
   role: '数据科学与大数据技术本科 · 全栈开发 / 后端开发',
-  school: '河北金融学院 · 2026 届',
   location: '中国 · 北京',
   email: '2650622341@qq.com',
   blog: 'blog.csdn.net/2401_84284464',
   summary:
-    '具备 Java、Rust 后端项目实践经验，参与过智能社区管理、大健康门店系统、内容审核平台、计算机视觉与 RAG 智能问答项目。关注后端工程、AI 应用落地与数据智能方向。',
+    '具备 Java、Rust 后端项目实践经验，参与过 AI 行业资讯自动化日报系统、大健康门店系统、智能社区管理系统、计算机视觉系统。关注后端工程、AI 应用落地与数据智能方向。',
 }
 
 const highlights = [
@@ -101,7 +101,7 @@ const projects = [
         title: '微信小程序顾客端 user-mini',
         note: '会员权益、订单确认、快捷预约与健康档案入口',
         kind: 'mobile',
-        images: [yishengMini01, yishengMini02, yishengMini03, yishengMini04],
+        images: [yishengMini01, yishengMini02, yishengMini03, yishengMini04, yishengMini05],
       },
     ],
     details: [
@@ -200,16 +200,21 @@ const previewOffsetX = ref(0)
 const previewOffsetY = ref(0)
 const previewDisplayWidth = ref(0)
 const previewDisplayHeight = ref(0)
+const previewCanvasWidth = ref(0)
+const previewCanvasHeight = ref(0)
 const previewReady = ref(false)
 const previewPageScrollY = ref(0)
 const isPreviewDragging = ref(false)
-const previewDragStart = ref({ x: 0, y: 0, offsetX: 0, offsetY: 0 })
+const previewDragStart = ref({ x: 0, y: 0, scrollLeft: 0, scrollTop: 0 })
 const previewImageRef = ref<HTMLImageElement | null>(null)
 const previewCanvasRef = ref<HTMLElement | null>(null)
 const lastPageScrollAt = ref(0)
+const lastPointerMoveAt = ref(0)
 const isProjectSwitching = ref(false)
 const activeProjectHeight = ref(0)
 const leavingProject = ref('')
+const leavingMediaTab = ref('')
+const leavingProjectFoldDirection = ref<'up' | 'down'>('down')
 const leavingProjectHeight = ref(0)
 const isLeavingProjectClosing = ref(false)
 const projectSwitchSpacerProject = ref('')
@@ -221,25 +226,73 @@ function fitPreviewImage() {
   const canvas = previewCanvasRef.value
   if (!image || !canvas || !image.naturalWidth || !image.naturalHeight) return
 
-  centerPreviewImage(1)
+  const fit = getPreviewInitialScale()
+  centerPreviewImage(fit)
   canvas.scrollTo({ left: 0, top: 0 })
   previewReady.value = true
 }
 
-function centerPreviewImage(scale = previewScale.value) {
-  const image = previewImageRef.value
-  const canvas = previewCanvasRef.value
-  if (!image || !canvas || !image.naturalWidth || !image.naturalHeight) return
+function getCssPixelLimit(value: string, fallback: number) {
+  const parsed = parseFloat(value)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
 
+function getPreviewCanvasLimits() {
+  const canvas = previewCanvasRef.value
+  if (!canvas) return { width: 0, height: 0, paddingX: 0, paddingY: 0 }
+
+  const panel = canvas.closest('.image-preview-panel')
+  const header = panel?.querySelector('header')
   const style = window.getComputedStyle(canvas)
   const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight)
   const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom)
-  const availableWidth = canvas.clientWidth - paddingX
-  const availableHeight = canvas.clientHeight - paddingY
+  const overlayPaddingX = window.innerWidth <= 560 ? 12 : 16
+  const overlayPaddingY = window.innerWidth <= 560 ? 12 : 16
+  const headerHeight = header instanceof HTMLElement ? Math.ceil(header.getBoundingClientRect().height) : 0
+  const viewportWidthLimit = Math.max(180, window.innerWidth - overlayPaddingX - 2)
+  const viewportHeightLimit = Math.max(180, window.innerHeight - overlayPaddingY - headerHeight - 2)
+  const cssWidthLimit = getCssPixelLimit(style.maxWidth, viewportWidthLimit)
+  const cssHeightLimit = getCssPixelLimit(style.maxHeight, viewportHeightLimit)
+
+  return {
+    width: Math.min(viewportWidthLimit, cssWidthLimit),
+    height: Math.min(viewportHeightLimit, cssHeightLimit),
+    paddingX,
+    paddingY,
+  }
+}
+
+function getPreviewFitScale() {
+  const image = previewImageRef.value
+  if (!image || !image.naturalWidth || !image.naturalHeight) return 1
+
+  const limits = getPreviewCanvasLimits()
+  const availableWidth = Math.max(1, limits.width - limits.paddingX)
+  const availableHeight = Math.max(1, limits.height - limits.paddingY)
+
+  return Math.min(1, availableWidth / image.naturalWidth, availableHeight / image.naturalHeight)
+}
+
+function getPreviewInitialScale() {
+  return getPreviewFitScale()
+}
+
+function centerPreviewImage(scale = previewScale.value) {
+  const image = previewImageRef.value
+  if (!image || !image.naturalWidth || !image.naturalHeight) return
+
+  const limits = getPreviewCanvasLimits()
+  const nextWidth = Math.round(image.naturalWidth * scale)
+  const nextHeight = Math.round(image.naturalHeight * scale)
 
   previewScale.value = scale
-  previewDisplayWidth.value = Math.round(image.naturalWidth * scale)
-  previewDisplayHeight.value = Math.round(image.naturalHeight * scale)
+  previewDisplayWidth.value = nextWidth
+  previewDisplayHeight.value = nextHeight
+  previewCanvasWidth.value = Math.min(limits.width, nextWidth + limits.paddingX)
+  previewCanvasHeight.value = Math.min(limits.height, nextHeight + limits.paddingY)
+
+  const availableWidth = previewCanvasWidth.value - limits.paddingX
+  const availableHeight = previewCanvasHeight.value - limits.paddingY
   previewOffsetX.value = Math.max(0, Math.round((availableWidth - previewDisplayWidth.value) / 2))
   previewOffsetY.value = Math.max(0, Math.round((availableHeight - previewDisplayHeight.value) / 2))
 }
@@ -264,6 +317,16 @@ function getDefaultMediaTab(projectName: string) {
   return mediaGroups[0].id
 }
 
+function getProjectMediaTab(projectName: string) {
+  if (activeProject.value === projectName) return activeMediaTab.value
+  if (leavingProject.value === projectName) return leavingMediaTab.value || getDefaultMediaTab(projectName)
+  return activeMediaTab.value
+}
+
+function isProjectMediaTabActive(projectName: string, groupId: string) {
+  return getProjectMediaTab(projectName) === groupId
+}
+
 function openPreview(src: string, title: string, index: number) {
   previewPageScrollY.value = window.scrollY
   previewReady.value = false
@@ -274,6 +337,8 @@ function openPreview(src: string, title: string, index: number) {
   previewOffsetY.value = 0
   previewDisplayWidth.value = 0
   previewDisplayHeight.value = 0
+  previewCanvasWidth.value = 0
+  previewCanvasHeight.value = 0
 }
 
 function closePreview() {
@@ -284,6 +349,8 @@ function closePreview() {
   previewOffsetY.value = 0
   previewDisplayWidth.value = 0
   previewDisplayHeight.value = 0
+  previewCanvasWidth.value = 0
+  previewCanvasHeight.value = 0
   previewReady.value = false
   isPreviewDragging.value = false
   nextTick(() => {
@@ -297,32 +364,54 @@ function closePreview() {
   })
 }
 
-function zoomPreview(step: number) {
-  const nextScale = Math.min(2.5, Math.max(0.12, Number((previewScale.value + step).toFixed(2))))
+function zoomPreview(step: number, anchor?: { x: number; y: number }) {
+  const canvas = previewCanvasRef.value
+  const fitScale = getPreviewFitScale()
+  const previousScale = previewScale.value
+  const nextScale = Math.min(2.5, Math.max(fitScale, Number((previewScale.value + step).toFixed(2))))
+  if (nextScale === previousScale) return
+
+  const anchorX = canvas && anchor ? anchor.x - canvas.getBoundingClientRect().left + canvas.scrollLeft : 0
+  const anchorY = canvas && anchor ? anchor.y - canvas.getBoundingClientRect().top + canvas.scrollTop : 0
   centerPreviewImage(nextScale)
+
+  if (canvas && anchor && previousScale > 0) {
+    const scaleRatio = nextScale / previousScale
+    canvas.scrollLeft = anchorX * scaleRatio - (anchor.x - canvas.getBoundingClientRect().left)
+    canvas.scrollTop = anchorY * scaleRatio - (anchor.y - canvas.getBoundingClientRect().top)
+  }
 }
 
 function handlePreviewWheel(event: WheelEvent) {
+  const canvas = previewCanvasRef.value
+  const canScroll =
+    canvas && (canvas.scrollHeight > canvas.clientHeight + 1 || canvas.scrollWidth > canvas.clientWidth + 1)
+  if (canScroll && !event.ctrlKey && !event.metaKey) return
+
   event.preventDefault()
-  zoomPreview(event.deltaY > 0 ? -0.1 : 0.1)
+  zoomPreview(event.deltaY > 0 ? -0.1 : 0.1, { x: event.clientX, y: event.clientY })
 }
 
 function startPreviewDrag(event: PointerEvent) {
-  if (previewScale.value < 1) return
+  const canvas = event.currentTarget as HTMLElement
+  const canScroll = canvas.scrollHeight > canvas.clientHeight + 1 || canvas.scrollWidth > canvas.clientWidth + 1
+  if (!canScroll && previewScale.value < 1) return
+
   isPreviewDragging.value = true
   previewDragStart.value = {
     x: event.clientX,
     y: event.clientY,
-    offsetX: previewOffsetX.value,
-    offsetY: previewOffsetY.value,
+    scrollLeft: canvas.scrollLeft,
+    scrollTop: canvas.scrollTop,
   }
-  ;(event.currentTarget as HTMLElement).setPointerCapture(event.pointerId)
+  canvas.setPointerCapture(event.pointerId)
 }
 
 function movePreviewDrag(event: PointerEvent) {
   if (!isPreviewDragging.value) return
-  previewOffsetX.value = previewDragStart.value.offsetX + event.clientX - previewDragStart.value.x
-  previewOffsetY.value = previewDragStart.value.offsetY + event.clientY - previewDragStart.value.y
+  const canvas = event.currentTarget as HTMLElement
+  canvas.scrollLeft = previewDragStart.value.scrollLeft - (event.clientX - previewDragStart.value.x)
+  canvas.scrollTop = previewDragStart.value.scrollTop - (event.clientY - previewDragStart.value.y)
 }
 
 function stopPreviewDrag(event: PointerEvent) {
@@ -387,11 +476,16 @@ let projectSwitchStartFrame: number | undefined
 let projectCloseTimer: number | undefined
 let projectCloseStartFrame: number | undefined
 let projectPositionPinFrame: number | undefined
+let projectHoverOpenTimer: number | undefined
+let projectHoverCloseTimer: number | undefined
 let scrollBehaviorRestoreFrame: number | undefined
 let previousRootScrollBehavior: string | undefined
 let isRootScrollBehaviorForced = false
 let isProjectPositionPinned = false
 let projectDetailResizeObserver: ResizeObserver | undefined
+const recentProjectPointerMoveMs = 120
+const projectDetailAnimationMs = 540
+const projectDetailCleanupMs = projectDetailAnimationMs + 120
 
 function formatHighlight(value: number, index: number) {
   if (index === 0) return `前 ${Math.round(value)}%`
@@ -466,9 +560,18 @@ function restorePageScrollBehaviorSoon() {
 }
 
 function adjustPageScrollInstant(offset: number) {
-  if (Math.abs(offset) <= 1) return
+  const stableOffset = Math.round(offset)
+  if (Math.abs(stableOffset) < 1) return
   forceInstantPageScroll()
-  window.scrollBy(0, offset)
+  window.scrollBy(0, stableOffset)
+}
+
+function isStationaryProjectPointerTransition(event: PointerEvent) {
+  if (!cursorVisible.value) return false
+  if (performance.now() - lastPointerMoveAt.value < recentProjectPointerMoveMs) return false
+  const pointerDelta = Math.hypot(event.clientX - cursorX.value, event.clientY - cursorY.value)
+  const eventMovement = Math.hypot(event.movementX, event.movementY)
+  return pointerDelta < 0.5 && eventMovement < 0.5
 }
 
 function stopProjectPositionPin() {
@@ -485,6 +588,7 @@ function pinProjectCardPosition(
   anchor: number | undefined,
   duration = 760,
   edge: 'top' | 'bottom' = 'top',
+  options: { allowUserScroll?: boolean } = {},
 ) {
   if (!card || anchor === undefined) return
   if (projectPositionPinFrame) window.cancelAnimationFrame(projectPositionPinFrame)
@@ -492,14 +596,22 @@ function pinProjectCardPosition(
   forceInstantPageScroll()
   isProjectPositionPinned = true
   const startedAt = performance.now()
+  let targetAnchor = anchor
+  let lastScrollY = window.scrollY
 
   const keepPinned = (now: number) => {
+    if (options.allowUserScroll) {
+      targetAnchor -= window.scrollY - lastScrollY
+    }
+
     const rect = card.getBoundingClientRect()
     const current = edge === 'bottom' ? rect.bottom : rect.top
-    const delta = current - anchor
-    if (Math.abs(delta) > 0.25) {
-      window.scrollBy(0, delta)
+    const delta = current - targetAnchor
+    const stableDelta = delta > 0 ? Math.floor(delta - 0.5) : Math.ceil(delta + 0.5)
+    if (Math.abs(stableDelta) >= 1) {
+      window.scrollBy(0, stableDelta)
     }
+    lastScrollY = window.scrollY
 
     if (now - startedAt < duration) {
       projectPositionPinFrame = window.requestAnimationFrame(keepPinned)
@@ -533,7 +645,25 @@ function measureProjectDetailHeight(detail: HTMLElement) {
   const innerHeight =
     inner instanceof HTMLElement ? Math.max(inner.scrollHeight, inner.getBoundingClientRect().height) : 0
 
-  return Math.ceil(Math.max(detail.scrollHeight, innerHeight + paddingY) + 18)
+  return Math.ceil(innerHeight + paddingY + 4)
+}
+
+function scheduleActiveProjectHeightSync() {
+  nextTick(() => {
+    syncActiveProjectHeight()
+    requestAnimationFrame(syncActiveProjectHeight)
+  })
+}
+
+function setActiveMediaTab(groupId: string) {
+  if (activeMediaTab.value === groupId) return
+  activeMediaTab.value = groupId
+  scheduleActiveProjectHeightSync()
+}
+
+function handleMediaImageLoad(groupId: string) {
+  if (activeMediaTab.value !== groupId) return
+  scheduleActiveProjectHeightSync()
 }
 
 function syncActiveProjectHeight() {
@@ -587,11 +717,30 @@ function getProjectIndex(projectName: string) {
   return projects.findIndex((project) => project.name === projectName)
 }
 
+function getFoldDirectionTowardCard(
+  previousProject: string,
+  nextProject: string,
+  nextCard?: HTMLElement,
+): 'up' | 'down' {
+  const previousCard = document.querySelector('.project-card.is-active')
+  if (previousCard instanceof HTMLElement && nextCard) {
+    const previousRect = previousCard.getBoundingClientRect()
+    const nextRect = nextCard.getBoundingClientRect()
+    const previousCenter = previousRect.top + previousRect.height / 2
+    const nextCenter = nextRect.top + nextRect.height / 2
+    return nextCenter >= previousCenter ? 'down' : 'up'
+  }
+
+  return getProjectIndex(nextProject) > getProjectIndex(previousProject) ? 'down' : 'up'
+}
+
 function cleanupProjectSwitch(card?: HTMLElement) {
   const topBeforeCleanup = card?.getBoundingClientRect().top
 
   isProjectSwitching.value = false
   leavingProject.value = ''
+  leavingMediaTab.value = ''
+  leavingProjectFoldDirection.value = 'down'
   leavingProjectHeight.value = 0
   isLeavingProjectClosing.value = false
   projectSwitchSpacerProject.value = ''
@@ -603,7 +752,7 @@ function cleanupProjectSwitch(card?: HTMLElement) {
     nextTick(() => {
       const topAfterCleanup = card.getBoundingClientRect().top
       adjustPageScrollInstant(topAfterCleanup - topBeforeCleanup)
-      pinProjectCardPosition(card, topBeforeCleanup, 180)
+      pinProjectCardPosition(card, topBeforeCleanup, 140)
     })
   }
 }
@@ -622,17 +771,19 @@ function clearProjectCloseTimers() {
 function openProject(
   projectName: string,
   event?: Event,
-  options: { keepPosition?: boolean } = { keepPosition: true },
+  options: { keepPosition?: boolean; anchor?: HTMLElement } = { keepPosition: true },
 ) {
   if (activeProject.value === projectName) return
-  const source = event?.currentTarget instanceof HTMLElement ? event.currentTarget : undefined
+  const source = options.anchor ?? (event?.currentTarget instanceof HTMLElement ? event.currentTarget : undefined)
   const closestCard = source?.closest('.project-card')
   const card = closestCard instanceof HTMLElement ? closestCard : source
   const topBeforeOpen = options.keepPosition ? card?.getBoundingClientRect().top : undefined
   const previousProject = activeProject.value
+  const previousMediaTab = activeMediaTab.value
   const shouldSwitchProjects = Boolean(previousProject && previousProject !== projectName)
-  const isSwitchingDown =
-    shouldSwitchProjects && getProjectIndex(projectName) > getProjectIndex(previousProject)
+  const foldDirection = shouldSwitchProjects
+    ? getFoldDirectionTowardCard(previousProject, projectName, card)
+    : 'down'
 
   if (shouldSwitchProjects) {
     if (projectSwitchTimer) {
@@ -650,15 +801,19 @@ function openProject(
     clearProjectCloseTimers()
     const previousDetail = getOpenProjectDetailMetrics()
     leavingProject.value = previousProject
+    leavingMediaTab.value = previousMediaTab || getDefaultMediaTab(previousProject)
+    leavingProjectFoldDirection.value = foldDirection
     leavingProjectHeight.value = previousDetail.height
     isLeavingProjectClosing.value = false
     isProjectSwitching.value = true
-    projectSwitchSpacerProject.value = isSwitchingDown ? projectName : ''
-    projectSwitchSpacerHeight.value = isSwitchingDown ? previousDetail.flowHeight : 0
+    projectSwitchSpacerProject.value = ''
+    projectSwitchSpacerHeight.value = 0
     isProjectSwitchSpacerOpen.value = false
   } else {
     clearProjectCloseTimers()
     leavingProject.value = ''
+    leavingMediaTab.value = ''
+    leavingProjectFoldDirection.value = 'down'
     leavingProjectHeight.value = 0
     isLeavingProjectClosing.value = false
     projectSwitchSpacerProject.value = ''
@@ -678,42 +833,57 @@ function openProject(
         projectSwitchStartTimer = undefined
         projectSwitchStartFrame = requestAnimationFrame(() => {
           isLeavingProjectClosing.value = true
-          isProjectSwitchSpacerOpen.value = Boolean(projectSwitchSpacerProject.value)
+          isProjectSwitchSpacerOpen.value = false
           projectSwitchStartFrame = undefined
-          if (card && topBeforeOpen !== undefined) {
-            nextTick(() => {
-              if (activeProject.value !== projectName) return
-              adjustPageScrollInstant(card.getBoundingClientRect().top - topBeforeOpen)
-              pinProjectCardPosition(card, topBeforeOpen, 980)
-            })
-          }
         })
-      }, 90)
+      }, 40)
     }
     if (card && topBeforeOpen !== undefined) {
       const topAfterOpen = card.getBoundingClientRect().top
       adjustPageScrollInstant(topAfterOpen - topBeforeOpen)
-      pinProjectCardPosition(card, topBeforeOpen, shouldSwitchProjects ? 1040 : 420)
+      pinProjectCardPosition(card, topBeforeOpen, shouldSwitchProjects ? projectDetailAnimationMs + 100 : 300)
     }
     if (shouldSwitchProjects) {
       projectSwitchTimer = window.setTimeout(() => {
         cleanupProjectSwitch(card)
-      }, 940)
+      }, projectDetailCleanupMs)
     }
   })
 }
 
 function openProjectByPointer(projectName: string, event: PointerEvent) {
   if (event.pointerType !== 'mouse') return
-  openProject(projectName, event, { keepPosition: true })
+  if (projectHoverCloseTimer) {
+    window.clearTimeout(projectHoverCloseTimer)
+    projectHoverCloseTimer = undefined
+  }
+  if (projectHoverOpenTimer) window.clearTimeout(projectHoverOpenTimer)
+
+  const card = event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined
+  projectHoverOpenTimer = window.setTimeout(() => {
+    projectHoverOpenTimer = undefined
+    if (!card?.matches(':hover')) return
+    openProject(projectName, undefined, { keepPosition: true, anchor: card })
+  }, 35)
 }
 
 function closeProjectByPointer(projectName: string, event: PointerEvent) {
   if (event.pointerType !== 'mouse') return
+  if (isStationaryProjectPointerTransition(event)) return
+  if (projectHoverOpenTimer) {
+    window.clearTimeout(projectHoverOpenTimer)
+    projectHoverOpenTimer = undefined
+  }
   const nextTarget = event.relatedTarget instanceof HTMLElement ? event.relatedTarget : undefined
   if (nextTarget?.closest('.project-card')) return
   const card = event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined
-  closeProject(projectName, { force: true, anchor: card, lockEdge: 'bottom' })
+  if (projectHoverCloseTimer) window.clearTimeout(projectHoverCloseTimer)
+
+  projectHoverCloseTimer = window.setTimeout(() => {
+    projectHoverCloseTimer = undefined
+    if (card?.matches(':hover')) return
+    closeProject(projectName, { force: true, anchor: card, lockEdge: 'top' })
+  }, 180)
 }
 
 function openProjectByFocus(projectName: string, event: FocusEvent) {
@@ -724,7 +894,7 @@ function openProjectByFocus(projectName: string, event: FocusEvent) {
 
 function closeProject(
   projectName: string,
-  options: { force?: boolean; anchor?: HTMLElement; lockEdge?: 'top' | 'bottom' } = {},
+  options: { force?: boolean; anchor?: HTMLElement; lockEdge?: 'top' | 'bottom'; allowUserScroll?: boolean } = {},
 ) {
   if (previewImage.value) return
   if (!options.force && performance.now() - lastPageScrollAt.value < 220) return
@@ -752,6 +922,8 @@ function closeProject(
   stopProjectPositionPin()
 
   leavingProject.value = projectName
+  leavingMediaTab.value = activeMediaTab.value || getDefaultMediaTab(projectName)
+  leavingProjectFoldDirection.value = lockEdge === 'bottom' ? 'down' : 'up'
   leavingProjectHeight.value = detailMetrics.height
   isLeavingProjectClosing.value = false
   activeProject.value = ''
@@ -767,25 +939,18 @@ function closeProject(
       const rect = card.getBoundingClientRect()
       const current = lockEdge === 'bottom' ? rect.bottom : rect.top
       adjustPageScrollInstant(current - anchorBeforeClose)
-      pinProjectCardPosition(card, anchorBeforeClose, 1600, lockEdge)
+      pinProjectCardPosition(card, anchorBeforeClose, projectDetailAnimationMs + 80, lockEdge)
     }
 
     projectCloseStartFrame = requestAnimationFrame(() => {
       isLeavingProjectClosing.value = true
       projectCloseStartFrame = undefined
-
-      if (card && anchorBeforeClose !== undefined) {
-        nextTick(() => {
-          const rect = card.getBoundingClientRect()
-          const current = lockEdge === 'bottom' ? rect.bottom : rect.top
-          adjustPageScrollInstant(current - anchorBeforeClose)
-          pinProjectCardPosition(card, anchorBeforeClose, 1500, lockEdge)
-        })
-      }
     })
 
     projectCloseTimer = window.setTimeout(() => {
       leavingProject.value = ''
+      leavingMediaTab.value = ''
+      leavingProjectFoldDirection.value = 'down'
       leavingProjectHeight.value = 0
       isLeavingProjectClosing.value = false
       projectCloseTimer = undefined
@@ -795,10 +960,10 @@ function closeProject(
           const rect = card.getBoundingClientRect()
           const current = lockEdge === 'bottom' ? rect.bottom : rect.top
           adjustPageScrollInstant(current - anchorBeforeClose)
-          pinProjectCardPosition(card, anchorBeforeClose, 760, lockEdge)
+          pinProjectCardPosition(card, anchorBeforeClose, 140, lockEdge)
         })
       }
-    }, 940)
+    }, projectDetailCleanupMs)
   })
 }
 
@@ -823,6 +988,7 @@ onMounted(() => {
   window.addEventListener('scroll', scrollListener, { passive: true })
 
   cursorListener = (event: PointerEvent) => {
+    lastPointerMoveAt.value = performance.now()
     cursorX.value = event.clientX
     cursorY.value = event.clientY
     cursorVisible.value = true
@@ -880,6 +1046,8 @@ onBeforeUnmount(() => {
   if (projectSwitchStartFrame) window.cancelAnimationFrame(projectSwitchStartFrame)
   if (projectCloseTimer) window.clearTimeout(projectCloseTimer)
   if (projectCloseStartFrame) window.cancelAnimationFrame(projectCloseStartFrame)
+  if (projectHoverOpenTimer) window.clearTimeout(projectHoverOpenTimer)
+  if (projectHoverCloseTimer) window.clearTimeout(projectHoverCloseTimer)
   if (projectPositionPinFrame) window.cancelAnimationFrame(projectPositionPinFrame)
   if (scrollBehaviorRestoreFrame) {
     window.cancelAnimationFrame(scrollBehaviorRestoreFrame)
@@ -1066,6 +1234,14 @@ onBeforeUnmount(() => {
             :class="{
               'is-open': activeProject === project.name,
               'is-leaving': leavingProject === project.name && activeProject !== project.name,
+              'is-fold-down':
+                leavingProject === project.name &&
+                activeProject !== project.name &&
+                leavingProjectFoldDirection === 'down',
+              'is-fold-up':
+                leavingProject === project.name &&
+                activeProject !== project.name &&
+                leavingProjectFoldDirection === 'up',
               'is-leaving-closing':
                 leavingProject === project.name && activeProject !== project.name && isLeavingProjectClosing,
             }"
@@ -1088,9 +1264,9 @@ onBeforeUnmount(() => {
                     :key="group.id"
                     type="button"
                     role="tab"
-                    :aria-selected="activeMediaTab === group.id"
-                    :class="{ 'is-active': activeMediaTab === group.id }"
-                    @click.stop="activeMediaTab = group.id"
+                    :aria-selected="isProjectMediaTabActive(project.name, group.id)"
+                    :class="{ 'is-active': isProjectMediaTabActive(project.name, group.id) }"
+                    @click.stop="setActiveMediaTab(group.id)"
                   >
                     <span class="tab-title">{{ group.tabLabel }}</span>
                     <span class="tab-note">{{ group.images.length }} 张界面展示</span>
@@ -1102,7 +1278,7 @@ onBeforeUnmount(() => {
                 :key="group.title"
                 class="project-media-group"
                 :class="`is-${group.kind}`"
-                v-show="activeMediaTab === group.id"
+                v-show="isProjectMediaTabActive(project.name, group.id)"
               >
                 <header v-if="(project.mediaGroups?.length ?? 0) > 1">
                   <strong>{{ group.title }}</strong>
@@ -1120,17 +1296,25 @@ onBeforeUnmount(() => {
                       :aria-label="`预览${group.title}界面展示 ${index + 1}`"
                       @click.stop="openPreview(src, group.title, index)"
                     >
-                      <img :src="src" :alt="`${group.title}界面展示 ${index + 1}`" loading="lazy" decoding="async" />
+                      <img
+                        :src="src"
+                        :alt="`${group.title}界面展示 ${index + 1}`"
+                        loading="lazy"
+                        decoding="async"
+                        @load="handleMediaImageLoad(group.id)"
+                      />
                       <span>点击预览</span>
                     </button>
                   </figure>
                 </div>
               </section>
             </div>
-            <h4>负责内容</h4>
-            <ul>
-              <li v-for="detail in project.details" :key="detail">{{ detail }}</li>
-            </ul>
+            <div class="project-responsibilities">
+              <h4>负责内容</h4>
+              <ul>
+                <li v-for="detail in project.details" :key="detail">{{ detail }}</li>
+              </ul>
+            </div>
             </div>
           </div>
           </article>
@@ -1141,7 +1325,7 @@ onBeforeUnmount(() => {
     <section id="practice" class="content-band practice-band reveal">
       <div class="section-heading">
         <p class="eyebrow">Campus Practice</p>
-        <h2>学生工作与社会实践</h2>
+        <h2>学生工作</h2>
       </div>
       <div class="practice-list">
         <article v-for="item in practices" :key="item.title" class="practice-card reveal">
@@ -1192,7 +1376,17 @@ onBeforeUnmount(() => {
           <div
             ref="previewCanvasRef"
             class="image-preview-canvas"
-            :class="{ 'is-zoomed': previewScale >= 1, 'is-dragging': isPreviewDragging }"
+            :class="{
+              'is-zoomed':
+                previewScale >= 1 ||
+                previewDisplayHeight > previewCanvasHeight ||
+                previewDisplayWidth > previewCanvasWidth,
+              'is-dragging': isPreviewDragging,
+            }"
+            :style="{
+              width: previewCanvasWidth ? `${previewCanvasWidth}px` : undefined,
+              height: previewCanvasHeight ? `${previewCanvasHeight}px` : undefined,
+            }"
             @wheel="handlePreviewWheel"
             @pointerdown="startPreviewDrag"
             @pointermove="movePreviewDrag"
@@ -1213,7 +1407,7 @@ onBeforeUnmount(() => {
               @load="fitPreviewImage"
               draggable="false"
             />
-            <span class="image-preview-hint">滚轮缩放，按住拖动</span>
+            <span class="image-preview-hint">滚轮滚动，Ctrl + 滚轮缩放，按住拖动</span>
           </div>
         </div>
       </div>
